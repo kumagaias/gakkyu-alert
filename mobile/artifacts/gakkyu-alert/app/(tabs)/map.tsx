@@ -140,11 +140,12 @@ function buildMapHTML(
         // Support both GeoJSON FeatureCollection and plain arrays
         var allFeatures = data.features || (Array.isArray(data) ? data : []);
 
-        // Filter to 23 special wards (names ending in 区)
+        // Show wards (区) and cities (市) — includes 多摩地区 municipalities
         var wards = allFeatures.filter(function(f) {
           var p = f.properties || {};
           var name = p['ward_ja'] || p['city'] || p['N03_004'] || p['name'] || p['name_1'] || '';
-          return name.slice(-1) === '\u533a'; // 区
+          var last = name.slice(-1);
+          return last === '\u533a' || last === '\u5e02'; // 区 or 市
         });
         if (wards.length === 0) wards = allFeatures;
 
@@ -375,7 +376,7 @@ export default function MapScreen() {
         ]}
       >
         <Text style={[styles.headerTitle, { color: colors.foreground }]}>
-          東京23区マップ
+          東京都 感染症マップ
         </Text>
         <Text style={[styles.headerSub, { color: colors.mutedForeground }]}>
           流行レベルで色分け・タップで詳細表示

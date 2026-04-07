@@ -60,10 +60,16 @@ export function useStatusData(): StatusData {
     })),
   };
 
-  // Overlay real district levels/summaries onto the full static list
+  // Tokyo-wide max level — fallback for districts without per-district API data
+  const tokyoMaxLevel = diseases.reduce(
+    (max: number, d) => Math.max(max, d.currentLevel),
+    0
+  ) as EpidemicLevel;
+
+  // Overlay real district levels/summaries; non-API districts use Tokyo-wide level
   const districts: District[] = TOKYO_DISTRICTS.map((d) => {
     const api = data.districts.find((ad) => ad.id === d.id);
-    if (!api) return d;
+    if (!api) return { ...d, level: tokyoMaxLevel };
     return {
       ...d,
       level: api.level as EpidemicLevel,
