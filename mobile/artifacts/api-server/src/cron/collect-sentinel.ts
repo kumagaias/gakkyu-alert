@@ -15,6 +15,10 @@ import {
   InvokeModelCommand,
 } from "@aws-sdk/client-bedrock-runtime";
 import { fetchLatestIdwrData, type IdwrRecord } from "../lib/idwr.js";
+import {
+  fetchLatestTmiphData,
+  type HcRecord,
+} from "../lib/tmiph.js";
 import { putSnapshot, querySnapshots } from "../lib/dynamodb.js";
 import { logger } from "../lib/logger.js";
 
@@ -254,21 +258,59 @@ export const handler = async (): Promise<void> => {
   });
   logger.info({ sk: weekKey, diseaseCount: diseases.length }, "DISEASE_STATUS 保存完了");
 
-  // DISTRICT_STATUS: 疾患レベルの最大値 + 地区別 AI サマリー
-  const maxLevel = diseases.reduce(
+  // DISTRICT_STATUS: 保健所別データで地区ごとにレベルを算出
+  // 東京都全体レベル（TMIPH 取得失敗時のフォールバック用）
+  const tokyoMaxLevel = diseases.reduce(
     (max, d) => Math.max(max, d.currentLevel), 0
   ) as 0 | 1 | 2 | 3;
+
+  // TMIPH 保健所別データ取得
+  let hcRecords: HcRecord[] = [];
+  try {
+    const { records, year: hcYear, week: hcWeek } = await fetchLatestTmiphData();
+    hcRecords = records;
+    logger.info(
+      { hcYear, hcWeek, count: records.length },
+      "TMIPH 保健所別データ取得完了"
+    );
+  } catch (err) {
+    logger.warn(
+      { err },
+      "TMIPH データ取得失敗 — 東京都全体レベルで代替"
+    );
+  }
+
+  // district ID → 保健所レコード のマップを構築
+  const districtToHc = new Map<string, HcRecord>();
+  for (const rec of hcRecords) {
+    for (const distId of rec.districtIds) {
+      districtToHc.set(distId, rec);
+    }
+  }
 
   const districts: Array<{ id: string; level: number; aiSummary: string }> = [];
 
   for (const districtId of Object.keys(DISTRICT_NAMES)) {
+    const hcRec = districtToHc.get(districtId);
+
+    // 保健所別インフルエンザ定点あたり患者数 → レベル計算
+    // 保健所データなし → 東京都全体レベルにフォールバック
+    const districtLevel: 0 | 1 | 2 | 3 = hcRec
+      ? calcLevel(hcRec.fluPerSentinel)
+      : tokyoMaxLevel;
+
     let aiSummary = "";
     try {
-      aiSummary = await generateDistrictSummary(bedrock, districtId, maxLevel, diseases);
+      aiSummary = await generateDistrictSummary(
+        bedrock,
+        districtId,
+        districtLevel,
+        diseases
+      );
     } catch (err) {
       logger.warn({ districtId, err }, "地区 AI サマリー生成失敗 — スキップ");
     }
-    districts.push({ id: districtId, level: maxLevel, aiSummary });
+    districts.push({ id: districtId, level: districtLevel, aiSummary });
   }
 
   await putSnapshot("DISTRICT_STATUS", weekKey, {
