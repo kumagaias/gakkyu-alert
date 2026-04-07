@@ -1,0 +1,54 @@
+# ======================================================================
+# Docker ビルドコンテキストから除外するファイル
+# ビルドコンテキスト: mobile/
+# ======================================================================
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Node / pnpm
+**/node_modules/
+**/.pnpm-debug.log
+.npmrc
+
+# ビルド成果物 (前回のビルドを混入させない)
+**/dist/
+**/.turbo/
+
+# Expo / React Native (package.json だけ残す — pnpm workspace の解決に必要)
+artifacts/app/**
+!artifacts/app/package.json
+artifacts/gakkyu-alert/**
+!artifacts/gakkyu-alert/package.json
+
+# Vite dev sandbox (同上)
+artifacts/mockup-sandbox/**
+!artifacts/mockup-sandbox/package.json
+
+# テスト
+**/*.test.ts
+**/*.test.js
+**/*.spec.ts
+**/*.spec.js
+**/__tests__/
+**/__mocks__/
+
+# ローカル環境設定 (シークレットを含む可能性あり)
+.env
+.env.*
+!.env.example
+
+# IDE / エディタ
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# ドキュメント (イメージに不要)
+**/*.md

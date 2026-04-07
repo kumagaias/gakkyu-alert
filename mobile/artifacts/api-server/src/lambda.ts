@@ -1,0 +1,11 @@
+/**
+ * Lambda ハンドラー — API Gateway プロキシ統合
+ *
+ * Express アプリを @vendia/serverless-express でラップして
+ * Lambda + API Gateway (/{proxy+}) から呼び出せるようにする。
+ */
+
+import serverlessExpress from "@vendia/serverless-express";
+import app from "./app.js";
+
+export const handler = serverlessExpress({ app });

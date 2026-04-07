@@ -1,0 +1,33 @@
+{
+  "expo": {
+    "name": "がっきゅうアラート",
+    "slug": "gakkyu-alert",
+    "scheme": "gakkyualert",
+    "version": "1.0.0",
+    "platforms": ["ios", "android", "web"],
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./assets/favicon.png"
+    },
+    "experiments": {
+      "typedRoutes": true
+    },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#1a56db",
+          "sounds": []
+        }
+      ]
+    ],
+    "android": {
+      "googleServicesFile": "./google-services.json"
+    },
+    "ios": {
+      "bundleIdentifier": "com.kumagaias.gakkyualert"
+    }
+  }
+}

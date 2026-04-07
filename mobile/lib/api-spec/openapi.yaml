@@ -1,0 +1,245 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: がっきゅうアラート API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: ヘルスチェック
+  - name: status
+    description: 流行状況データ
+  - name: devices
+    description: Push 通知デバイス管理
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: ヘルスチェック
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /v1/status:
+    get:
+      operationId: getStatus
+      tags: [status]
+      summary: 流行状況一括取得
+      description: |
+        アプリ起動時に一度呼び出し、学級閉鎖・疾患別状況・区市別状況をまとめて返す。
+        CloudFront で 1 時間キャッシュ。
+      responses:
+        "200":
+          description: 最新の流行状況データ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusResponse"
+
+  /v1/devices:
+    post:
+      operationId: registerDevice
+      tags: [devices]
+      summary: デバイス登録 / 設定同期
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeviceRegistration"
+      responses:
+        "200":
+          description: 登録完了
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeviceRegistrationResult"
+
+  /v1/devices/{fcmToken}:
+    delete:
+      operationId: deregisterDevice
+      tags: [devices]
+      summary: デバイス解除
+      parameters:
+        - name: fcmToken
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: 解除完了
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    # ── Status ─────────────────────────────────────────────
+    StatusResponse:
+      type: object
+      properties:
+        asOf:
+          type: string
+          description: データ生成日時 (ISO8601)
+        schoolClosures:
+          $ref: "#/components/schemas/SchoolClosuresData"
+        diseases:
+          type: array
+          items:
+            $ref: "#/components/schemas/DiseaseStatus"
+        districts:
+          type: array
+          items:
+            $ref: "#/components/schemas/DistrictStatus"
+      required:
+        - asOf
+        - schoolClosures
+        - diseases
+        - districts
+
+    SchoolClosuresData:
+      type: object
+      properties:
+        lastUpdated:
+          type: string
+          description: 最終更新日 (YYYY-MM-DD)
+        sourceUrl:
+          type: string
+        tableauUrl:
+          type: string
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/ClosureEntry"
+      required:
+        - lastUpdated
+        - entries
+
+    ClosureEntry:
+      type: object
+      properties:
+        diseaseId:
+          type: string
+        diseaseName:
+          type: string
+        closedClasses:
+          type: integer
+        weekAgoClasses:
+          type: integer
+        weeklyHistory:
+          type: array
+          items:
+            type: integer
+          description: 8週分 oldest→newest
+        sourceUpdatedAt:
+          type: string
+          nullable: true
+      required:
+        - diseaseId
+        - diseaseName
+        - closedClasses
+        - weekAgoClasses
+        - weeklyHistory
+
+    DiseaseStatus:
+      type: object
+      properties:
+        id:
+          type: string
+        currentLevel:
+          type: integer
+          minimum: 0
+          maximum: 3
+        currentCount:
+          type: number
+        lastWeekCount:
+          type: number
+        twoWeeksAgoCount:
+          type: number
+        weeklyHistory:
+          type: array
+          items:
+            type: number
+          description: 8週分
+        aiComment:
+          type: string
+      required:
+        - id
+        - currentLevel
+        - currentCount
+        - lastWeekCount
+        - twoWeeksAgoCount
+        - weeklyHistory
+        - aiComment
+
+    DistrictStatus:
+      type: object
+      properties:
+        id:
+          type: string
+        level:
+          type: integer
+          minimum: 0
+          maximum: 3
+        aiSummary:
+          type: string
+      required:
+        - id
+        - level
+        - aiSummary
+
+    # ── Devices ────────────────────────────────────────────
+    DeviceRegistration:
+      type: object
+      properties:
+        fcmToken:
+          type: string
+        platform:
+          type: string
+          enum: [ios, android, web]
+        homeDistrictId:
+          type: string
+        extraDistrictIds:
+          type: array
+          items:
+            type: string
+        alertLevel:
+          type: integer
+          enum: [2, 3]
+        weeklyEnabled:
+          type: boolean
+        weeklyDay:
+          type: integer
+          minimum: 0
+          maximum: 6
+        weeklyHour:
+          type: integer
+          minimum: 0
+          maximum: 23
+      required:
+        - fcmToken
+        - platform
+        - homeDistrictId
+        - alertLevel
+
+    DeviceRegistrationResult:
+      type: object
+      properties:
+        ok:
+          type: boolean
+      required:
+        - ok

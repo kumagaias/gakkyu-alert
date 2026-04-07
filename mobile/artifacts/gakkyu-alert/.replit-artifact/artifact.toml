@@ -1,0 +1,27 @@
+kind = "mobile"
+previewPath = "/"
+title = "がっきゅうアラート"
+version = "1.0.0"
+id = "artifacts/gakkyu-alert"
+router = "expo-domain"
+
+[[integratedSkills]]
+name = "expo"
+version = "1.0.0"
+
+[[services]]
+ensurePreviewReachable = "/status"
+name = "expo"
+paths = [ "/" ]
+localPort = 25807
+
+[services.development]
+run = "pnpm --filter @workspace/gakkyu-alert run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/gakkyu-alert", "run", "build" ]
+run = [ "pnpm", "--filter", "@workspace/gakkyu-alert", "run", "serve" ]
+
+[services.env]
+PORT = "25807"
+BASE_PATH = "/"

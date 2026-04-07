@@ -1,0 +1,41 @@
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = ">= 5.0"
+    }
+  }
+}
+
+resource "aws_amplify_app" "this" {
+  name         = var.app_name
+  repository   = var.repository
+  access_token = var.github_token
+
+  build_spec = var.build_spec
+
+  enable_branch_auto_deletion = true
+
+  environment_variables = var.environment_variables
+}
+
+resource "aws_amplify_branch" "this" {
+  app_id      = aws_amplify_app.this.id
+  branch_name = var.branch_name
+
+  enable_auto_build = true
+}
+
+resource "aws_amplify_domain_association" "this" {
+  count = var.custom_domain != null ? 1 : 0
+
+  app_id      = aws_amplify_app.this.id
+  domain_name = var.custom_domain
+
+  sub_domain {
+    branch_name = aws_amplify_branch.this.branch_name
+    prefix      = ""
+  }
+
+  wait_for_verification = false
+}

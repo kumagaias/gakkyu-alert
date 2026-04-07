@@ -1,0 +1,8 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "IDbgeufJUiaiP8Z4q-rcG"
+uri = "file://artifacts/gakkyu-alert/assets/images/icon.png"
+type = "image"
+title = "gakkyu alert app icon"
