@@ -17,6 +17,14 @@ resource "aws_amplify_app" "this" {
   enable_branch_auto_deletion = true
 
   environment_variables = var.environment_variables
+
+  # SPA ルーティング: 静的ファイル以外はすべて index.html に書き換え
+  # これにより /map/ などを直接リロードしても 404 にならない
+  custom_rule {
+    source = "</^[^.]+$|\\\\.(?!(css|gif|ico|jpg|js|png|txt|svg|woff|woff2|ttf|map|json)$)([^.]+$)/>"
+    target = "/index.html"
+    status = "200"
+  }
 }
 
 resource "aws_amplify_branch" "this" {
