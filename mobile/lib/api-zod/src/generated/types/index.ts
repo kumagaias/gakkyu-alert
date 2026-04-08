@@ -14,5 +14,6 @@ export * from "./deviceRegistrationResult";
 export * from "./diseaseStatus";
 export * from "./districtStatus";
 export * from "./healthStatus";
+export * from "./prefectureStatus";
 export * from "./schoolClosuresData";
 export * from "./statusResponse";

@@ -52,12 +52,29 @@ export interface DistrictStatus {
   aiSummary: string;
 }
 
+/**
+ * 都道府県レベルの流行状況。id は英字 (例: "tokyo", "osaka")。
+ * 将来的に市区町村レベルへ分解可能な構造。
+ */
+export interface PrefectureStatus {
+  /** 都道府県ID (例: "tokyo") */
+  id: string;
+  /**
+   * @minimum 0
+   * @maximum 3
+   */
+  level: number;
+  aiSummary: string;
+}
+
 export interface StatusResponse {
   /** データ生成日時 (ISO8601) */
   asOf: string;
   schoolClosures: SchoolClosuresData;
   diseases: DiseaseStatus[];
   districts: DistrictStatus[];
+  /** 全47都道府県の流行レベル */
+  prefectures: PrefectureStatus[];
 }
 
 export type DeviceRegistrationPlatform =

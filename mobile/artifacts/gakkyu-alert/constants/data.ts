@@ -34,6 +34,65 @@ export interface District {
   aiSummary: string;
 }
 
+/** 都道府県 — 将来的に市区町村への分解を見越した構造 */
+export interface Prefecture {
+  id: string;    // 英字ID (例: "tokyo")
+  name: string;  // 日本語名 (例: "東京都")
+  /** 将来: municipalities?: Municipality[] */
+  level: EpidemicLevel;
+  aiSummary: string;
+}
+
+export const PREFECTURES: Prefecture[] = [
+  { id: "hokkaido",   name: "北海道",   level: 0, aiSummary: "" },
+  { id: "aomori",     name: "青森県",   level: 0, aiSummary: "" },
+  { id: "iwate",      name: "岩手県",   level: 0, aiSummary: "" },
+  { id: "miyagi",     name: "宮城県",   level: 0, aiSummary: "" },
+  { id: "akita",      name: "秋田県",   level: 0, aiSummary: "" },
+  { id: "yamagata",   name: "山形県",   level: 0, aiSummary: "" },
+  { id: "fukushima",  name: "福島県",   level: 0, aiSummary: "" },
+  { id: "ibaraki",    name: "茨城県",   level: 0, aiSummary: "" },
+  { id: "tochigi",    name: "栃木県",   level: 0, aiSummary: "" },
+  { id: "gunma",      name: "群馬県",   level: 0, aiSummary: "" },
+  { id: "saitama",    name: "埼玉県",   level: 0, aiSummary: "" },
+  { id: "chiba",      name: "千葉県",   level: 0, aiSummary: "" },
+  { id: "tokyo",      name: "東京都",   level: 0, aiSummary: "" },
+  { id: "kanagawa",   name: "神奈川県", level: 0, aiSummary: "" },
+  { id: "niigata",    name: "新潟県",   level: 0, aiSummary: "" },
+  { id: "toyama",     name: "富山県",   level: 0, aiSummary: "" },
+  { id: "ishikawa",   name: "石川県",   level: 0, aiSummary: "" },
+  { id: "fukui",      name: "福井県",   level: 0, aiSummary: "" },
+  { id: "yamanashi",  name: "山梨県",   level: 0, aiSummary: "" },
+  { id: "nagano",     name: "長野県",   level: 0, aiSummary: "" },
+  { id: "gifu",       name: "岐阜県",   level: 0, aiSummary: "" },
+  { id: "shizuoka",   name: "静岡県",   level: 0, aiSummary: "" },
+  { id: "aichi",      name: "愛知県",   level: 0, aiSummary: "" },
+  { id: "mie",        name: "三重県",   level: 0, aiSummary: "" },
+  { id: "shiga",      name: "滋賀県",   level: 0, aiSummary: "" },
+  { id: "kyoto",      name: "京都府",   level: 0, aiSummary: "" },
+  { id: "osaka",      name: "大阪府",   level: 0, aiSummary: "" },
+  { id: "hyogo",      name: "兵庫県",   level: 0, aiSummary: "" },
+  { id: "nara",       name: "奈良県",   level: 0, aiSummary: "" },
+  { id: "wakayama",   name: "和歌山県", level: 0, aiSummary: "" },
+  { id: "tottori",    name: "鳥取県",   level: 0, aiSummary: "" },
+  { id: "shimane",    name: "島根県",   level: 0, aiSummary: "" },
+  { id: "okayama",    name: "岡山県",   level: 0, aiSummary: "" },
+  { id: "hiroshima",  name: "広島県",   level: 0, aiSummary: "" },
+  { id: "yamaguchi",  name: "山口県",   level: 0, aiSummary: "" },
+  { id: "tokushima",  name: "徳島県",   level: 0, aiSummary: "" },
+  { id: "kagawa",     name: "香川県",   level: 0, aiSummary: "" },
+  { id: "ehime",      name: "愛媛県",   level: 0, aiSummary: "" },
+  { id: "kochi",      name: "高知県",   level: 0, aiSummary: "" },
+  { id: "fukuoka",    name: "福岡県",   level: 0, aiSummary: "" },
+  { id: "saga",       name: "佐賀県",   level: 0, aiSummary: "" },
+  { id: "nagasaki",   name: "長崎県",   level: 0, aiSummary: "" },
+  { id: "kumamoto",   name: "熊本県",   level: 0, aiSummary: "" },
+  { id: "oita",       name: "大分県",   level: 0, aiSummary: "" },
+  { id: "miyazaki",   name: "宮崎県",   level: 0, aiSummary: "" },
+  { id: "kagoshima",  name: "鹿児島県", level: 0, aiSummary: "" },
+  { id: "okinawa",    name: "沖縄県",   level: 0, aiSummary: "" },
+];
+
 export interface SchoolClosureEntry {
   diseaseId: string;
   diseaseName: string;

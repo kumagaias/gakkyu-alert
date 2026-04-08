@@ -56,6 +56,16 @@ export async function putSnapshot(
   );
 }
 
+export async function getSnapshotByKey<T = Record<string, unknown>>(
+  pk: string,
+  sk: string
+): Promise<T | null> {
+  const res = await docClient.send(
+    new GetCommand({ TableName: TABLES.SNAPSHOTS, Key: { pk, sk } })
+  );
+  return (res.Item as T) ?? null;
+}
+
 export async function getLatestSnapshot<T = Record<string, unknown>>(
   pk: string
 ): Promise<T | null> {

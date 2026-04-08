@@ -105,11 +105,17 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/DistrictStatus"
+        prefectures:
+          type: array
+          description: 全47都道府県の流行レベル
+          items:
+            $ref: "#/components/schemas/PrefectureStatus"
       required:
         - asOf
         - schoolClosures
         - diseases
         - districts
+        - prefectures
 
     SchoolClosuresData:
       type: object
@@ -191,6 +197,26 @@ components:
       properties:
         id:
           type: string
+        level:
+          type: integer
+          minimum: 0
+          maximum: 3
+        aiSummary:
+          type: string
+      required:
+        - id
+        - level
+        - aiSummary
+
+    PrefectureStatus:
+      type: object
+      description: |
+        都道府県レベルの流行状況。id は英字 (例: "tokyo", "osaka")。
+        将来的に市区町村レベルへ分解可能な構造。
+      properties:
+        id:
+          type: string
+          description: 都道府県ID (例: "tokyo")
         level:
           type: integer
           minimum: 0

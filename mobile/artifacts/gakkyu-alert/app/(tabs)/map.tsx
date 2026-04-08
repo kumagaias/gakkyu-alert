@@ -12,36 +12,46 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
 import { useApp } from "@/contexts/AppContext";
 import {
-  TOKYO_DISTRICTS,
-  type District,
+  PREFECTURES,
   type EpidemicLevel,
+  type Prefecture,
   LEVEL_NAMES,
 } from "@/constants/data";
 import { useStatusData } from "@/hooks/useStatusData";
 import { DistrictModal } from "@/components/DistrictModal";
-// Bundled ward boundary data — no network fetch needed
-import tokyoGeoJSON from "@/assets/data/tokyo.json";
+import type { District } from "@/constants/data";
+
+// 都道府県の日本語名 → ID マッピング (GeoJSON nam_ja → prefId)
+const PREF_NAME_TO_ID: Record<string, string> = {
+  北海道: "hokkaido", 青森県: "aomori", 岩手県: "iwate", 宮城県: "miyagi",
+  秋田県: "akita", 山形県: "yamagata", 福島県: "fukushima", 茨城県: "ibaraki",
+  栃木県: "tochigi", 群馬県: "gunma", 埼玉県: "saitama", 千葉県: "chiba",
+  東京都: "tokyo", 神奈川県: "kanagawa", 新潟県: "niigata", 富山県: "toyama",
+  石川県: "ishikawa", 福井県: "fukui", 山梨県: "yamanashi", 長野県: "nagano",
+  岐阜県: "gifu", 静岡県: "shizuoka", 愛知県: "aichi", 三重県: "mie",
+  滋賀県: "shiga", 京都府: "kyoto", 大阪府: "osaka", 兵庫県: "hyogo",
+  奈良県: "nara", 和歌山県: "wakayama", 鳥取県: "tottori", 島根県: "shimane",
+  岡山県: "okayama", 広島県: "hiroshima", 山口県: "yamaguchi", 徳島県: "tokushima",
+  香川県: "kagawa", 愛媛県: "ehime", 高知県: "kochi", 福岡県: "fukuoka",
+  佐賀県: "saga", 長崎県: "nagasaki", 熊本県: "kumamoto", 大分県: "oita",
+  宮崎県: "miyazaki", 鹿児島県: "kagoshima", 沖縄県: "okinawa",
+};
 
 // ---- HTML builder ----
 
-function buildLevelMap(districts: District[]) {
+function buildLevelMap(prefectures: Prefecture[]) {
   const map: Record<string, number> = {};
-  for (const d of districts) {
-    map[d.name] = d.level;
+  for (const p of prefectures) {
+    map[p.id] = p.level;
   }
   return map;
 }
 
 function buildMapHTML(
   levelMap: Record<string, number>,
-  homeDistrictId: string | null,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  geoData: any
+  homePrefId: string | null,
 ): string {
   const levelColors = { 0: "#94a3b8", 1: "#eab308", 2: "#f97316", 3: "#ef4444" };
-  const homeDistrict = homeDistrictId
-    ? (TOKYO_DISTRICTS.find((d) => d.id === homeDistrictId)?.name ?? null)
-    : null;
 
   return `<!DOCTYPE html>
 <html>
@@ -90,14 +100,14 @@ function buildMapHTML(
   <div id="error-box"></div>
   <div id="map"></div>
   <script>
+    // 都道府県ID → level マップ (例: { tokyo: 0, osaka: 1, ... })
     var LEVELS = ${JSON.stringify(levelMap)};
-    var HOME = ${JSON.stringify(homeDistrict)};
+    // 都道府県の日本語名 → ID マッピング (GeoJSON nam_ja → prefId)
+    var NAME_TO_ID = ${JSON.stringify(PREF_NAME_TO_ID)};
+    var HOME_PREF = ${JSON.stringify(homePrefId)};
     var COLORS = ${JSON.stringify(levelColors)};
     var LNAMES = { 0: '平穏', 1: '注意', 2: '警戒', 3: '流行' };
-    // Bundled ward boundary data — no network fetch required
-    var GEO_DATA = ${JSON.stringify(geoData)};
 
-    // Works in both react-native-webview and plain iframe
     function send(data) {
       var msg = JSON.stringify(data);
       if (window.ReactNativeWebView) {
@@ -107,23 +117,24 @@ function buildMapHTML(
       }
     }
 
-    function getLevel(name) {
-      if (LEVELS[name] !== undefined) return LEVELS[name];
-      for (var k in LEVELS) {
-        if (name && k && (name.indexOf(k) !== -1 || k.indexOf(name) !== -1)) return LEVELS[k];
-      }
-      return -1;
+    function getPrefId(props) {
+      // dataofjapan/land GeoJSON uses nam_ja
+      return NAME_TO_ID[props['nam_ja']] || NAME_TO_ID[props['name']] || null;
     }
-
-    function wardName(props) {
-      return props['ward_ja'] || props['city'] || props['N03_004'] || props['name'] || props['name_1'] || '';
+    function getPrefName(props) {
+      return props['nam_ja'] || props['name'] || '';
+    }
+    function getLevel(prefId) {
+      return prefId !== null && LEVELS[prefId] !== undefined ? LEVELS[prefId] : -1;
     }
 
     var map = L.map('map', {
-      center: [35.685, 139.692],
-      zoom: 11,
+      center: [36.5, 136.0],
+      zoom: 5,
       zoomControl: true,
-      attributionControl: false
+      attributionControl: false,
+      minZoom: 4,
+      maxZoom: 10,
     });
 
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
@@ -135,82 +146,69 @@ function buildMapHTML(
       .addTo(map);
 
     function processGeoJSON(data) {
-        document.getElementById('loading').style.display = 'none';
+      document.getElementById('loading').style.display = 'none';
+      var features = data.features || [];
+      if (features.length === 0) {
+        send({ type: 'error', msg: 'no features' });
+        return;
+      }
 
-        // Support both GeoJSON FeatureCollection and plain arrays
-        var allFeatures = data.features || (Array.isArray(data) ? data : []);
+      var layer = L.geoJSON({ type: 'FeatureCollection', features: features }, {
+        style: function(f) {
+          var prefId = getPrefId(f.properties);
+          var lv = getLevel(prefId);
+          var isHome = prefId !== null && prefId === HOME_PREF;
+          return {
+            fillColor: lv >= 0 ? COLORS[lv] : '#cbd5e1',
+            fillOpacity: 0.6,
+            color: isHome ? '#1d4ed8' : '#ffffff',
+            weight: isHome ? 2.5 : 0.8,
+          };
+        },
+        onEachFeature: function(f, lyr) {
+          var prefId = getPrefId(f.properties);
+          var name = getPrefName(f.properties);
+          var lv = getLevel(prefId);
+          var isHome = prefId !== null && prefId === HOME_PREF;
 
-        // Show wards (区) and cities (市) — includes 多摩地区 municipalities
-        var wards = allFeatures.filter(function(f) {
-          var p = f.properties || {};
-          var name = p['ward_ja'] || p['city'] || p['N03_004'] || p['name'] || p['name_1'] || '';
-          var last = name.slice(-1);
-          return last === '\u533a' || last === '\u5e02'; // 区 or 市
-        });
-        if (wards.length === 0) wards = allFeatures;
+          lyr.on('click', function(e) {
+            L.DomEvent.stopPropagation(e);
+            send({ type: 'prefClick', id: prefId, name: name });
+          });
 
-        var layer = L.geoJSON({ type: 'FeatureCollection', features: wards }, {
-          style: function(f) {
-            var n = wardName(f.properties);
-            var lv = getLevel(n);
-            var isHome = n === HOME;
-            return {
-              fillColor: lv >= 0 ? COLORS[lv] : '#cbd5e1',
-              fillOpacity: 0.55,
-              color: isHome ? '#1d4ed8' : '#ffffff',
-              weight: isHome ? 2.5 : 1.2
-            };
-          },
-          onEachFeature: function(f, lyr) {
-            var n = wardName(f.properties);
-            var lv = getLevel(n);
-            var isHome = n === HOME;
+          var homeLine = isHome ? '<div class="ward-home">★ 居住地</div>' : '';
+          var lvLine = lv >= 0
+            ? '<div class="ward-level" style="color:' + COLORS[lv] + ';font-weight:600">' + LNAMES[lv] + ' (Lv.' + lv + ')</div>'
+            : '<div class="ward-level">データなし</div>';
 
-            lyr.on('click', function(e) {
-              L.DomEvent.stopPropagation(e);
-              send({ type: 'wardClick', name: n });
-            });
-
-            var homeLine = isHome ? '<div class="ward-home">★ 居住区</div>' : '';
-            var lvLine = lv >= 0
-              ? '<div class="ward-level" style="color:' + COLORS[lv] + ';font-weight:600">' + LNAMES[lv] + ' (Lv.' + lv + ')</div>'
-              : '';
-
-            lyr.bindPopup(
-              '<div class="ward-name">' + n + '</div>' + lvLine + homeLine,
-              { closeButton: false, autoPan: false, offset: [0, -4] }
-            );
-
-            lyr.on('mouseover', function() {
-              lyr.setStyle({ fillOpacity: 0.82, weight: lyr.options.color === '#1d4ed8' ? 2.5 : 2, color: lyr.options.color === '#1d4ed8' ? '#1d4ed8' : '#94a3b8' });
-              lyr.openPopup();
-            });
-            lyr.on('mouseout', function() {
-              layer.resetStyle(lyr);
-              lyr.closePopup();
-            });
-          }
-        }).addTo(map);
-
-        try {
-          var bounds = layer.getBounds();
-          var sw = bounds.getSouthWest();
-          var ne = bounds.getNorthEast();
-          // Sanity check: Tokyo 23 wards span ~0.28°lat × 0.35°lng
-          if (ne.lat - sw.lat < 1.0 && ne.lng - sw.lng < 1.0) {
-            map.fitBounds(bounds, { padding: [20, 20] });
-          } else {
-            // Data is too large; center on Tokyo wards
-            map.setView([35.685, 139.74], 11);
-          }
-        } catch(e) {
-          map.setView([35.685, 139.74], 11);
+          lyr.bindPopup(
+            '<div class="ward-name">' + name + '</div>' + lvLine + homeLine,
+            { closeButton: false, autoPan: false, offset: [0, -4] }
+          );
+          lyr.on('mouseover', function() {
+            lyr.setStyle({ fillOpacity: 0.85 });
+            lyr.openPopup();
+          });
+          lyr.on('mouseout', function() {
+            layer.resetStyle(lyr);
+            lyr.closePopup();
+          });
         }
-        send({ type: 'ready', count: wards.length });
+      }).addTo(map);
+
+      map.fitBounds(layer.getBounds(), { padding: [10, 10] });
+      send({ type: 'ready', count: features.length });
     }
 
-    // Use bundled data immediately — no network fetch required
-    processGeoJSON(GEO_DATA);
+    // Japan prefecture GeoJSON — fetched from CDN at runtime
+    fetch('https://raw.githubusercontent.com/dataofjapan/land/master/japan.geojson')
+      .then(function(r) { return r.json(); })
+      .then(processGeoJSON)
+      .catch(function(e) {
+        document.getElementById('error-box').style.display = 'block';
+        document.getElementById('error-box').textContent = '地図データ取得失敗: ' + e.message;
+        send({ type: 'error', msg: String(e) });
+      });
   </script>
 </body>
 </html>`;
@@ -341,30 +339,45 @@ export default function MapScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { homeDistrictId } = useApp();
-  const { districts } = useStatusData();
+  const { prefectures } = useStatusData();
   const [selectedDistrict, setSelectedDistrict] = useState<District | null>(null);
   const [mapError, setMapError] = useState(false);
+
+  // 居住地の地区ID (例: "nerima") から都道府県ID を推定
+  // シンプルに東京都地区 → "tokyo" にフォールバック
+  const homePrefId = homeDistrictId ? "tokyo" : null;
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const botPad = Platform.OS === "web" ? 34 + 84 : insets.bottom + 84;
 
-  const levelMap = buildLevelMap(districts);
-  // Memoize HTML so it's stable across renders
+  const levelMap = buildLevelMap(prefectures);
   const mapHTML = React.useMemo(
-    () => buildMapHTML(levelMap, homeDistrictId ?? null, tokyoGeoJSON),
+    () => buildMapHTML(levelMap, homePrefId),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [homeDistrictId, districts]
+    [homePrefId, prefectures]
   );
 
   const handleMessage = useCallback((raw: string) => {
     try {
       const data = JSON.parse(raw);
-      if (data.type === "wardClick") {
-        const district = TOKYO_DISTRICTS.find((d) => d.name === data.name);
-        if (district) setSelectedDistrict(district);
+      if (data.type === "prefClick") {
+        // 都道府県クリック: 将来的に都道府県詳細モーダルを表示
+        // 現在は東京都の場合のみ地区詳細へ (既存DistrictModal流用)
+        if (data.id === "tokyo" && homeDistrictId) {
+          const pref = prefectures.find((p) => p.id === "tokyo");
+          if (pref) {
+            // Prefecture を District 互換として扱う
+            setSelectedDistrict({
+              id: pref.id,
+              name: pref.name,
+              level: pref.level,
+              aiSummary: pref.aiSummary,
+            });
+          }
+        }
       }
     } catch {}
-  }, []);
+  }, [prefectures, homeDistrictId]);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -376,10 +389,10 @@ export default function MapScreen() {
         ]}
       >
         <Text style={[styles.headerTitle, { color: colors.foreground }]}>
-          東京都 感染症マップ
+          全国 感染症マップ
         </Text>
         <Text style={[styles.headerSub, { color: colors.mutedForeground }]}>
-          流行レベルで色分け・タップで詳細表示
+          都道府県別・流行レベルで色分け
         </Text>
       </View>
 

@@ -8,10 +8,11 @@ const router: IRouter = Router();
 router.get("/status", async (_req, res) => {
   try {
     // 最新スナップショットを並列取得
-    const [closureSnap, diseaseSnap, districtSnap] = await Promise.all([
+    const [closureSnap, diseaseSnap, districtSnap, prefSnap] = await Promise.all([
       getLatestSnapshot<Record<string, unknown>>("CLOSURE"),
       getLatestSnapshot<Record<string, unknown>>("DISEASE_STATUS"),
       getLatestSnapshot<Record<string, unknown>>("DISTRICT_STATUS"),
+      getLatestSnapshot<Record<string, unknown>>("PREFECTURE_STATUS"),
     ]);
 
     const schoolClosures = closureSnap
@@ -44,11 +45,20 @@ router.get("/status", async (_req, res) => {
       })
     );
 
+    const prefectures = ((prefSnap?.prefectures as Record<string, unknown>[] | undefined) ?? []).map(
+      (p) => ({
+        id: p.id,
+        level: (p.level ?? 0) as number,
+        aiSummary: (p.aiSummary ?? "") as string,
+      })
+    );
+
     res.json({
       asOf: new Date().toISOString(),
       schoolClosures,
       diseases,
       districts,
+      prefectures,
     });
   } catch (err) {
     logger.error({ err }, "GET /v1/status エラー");

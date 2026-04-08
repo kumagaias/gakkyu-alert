@@ -1,11 +1,13 @@
 import { useGetStatus } from "@workspace/api-client-react";
 import {
   DISEASES,
+  PREFECTURES,
   SCHOOL_CLOSURES,
   TOKYO_DISTRICTS,
   type Disease,
   type District,
   type EpidemicLevel,
+  type Prefecture,
   type SchoolClosureData,
 } from "@/constants/data";
 
@@ -13,6 +15,7 @@ export interface StatusData {
   diseases: Disease[];
   schoolClosures: SchoolClosureData;
   districts: District[];
+  prefectures: Prefecture[];
   asOf: string | null;
   isLoading: boolean;
   isError: boolean;
@@ -26,6 +29,7 @@ export function useStatusData(): StatusData {
       diseases: DISEASES,
       schoolClosures: SCHOOL_CLOSURES,
       districts: TOKYO_DISTRICTS,
+      prefectures: PREFECTURES,
       asOf: null,
       isLoading,
       isError,
@@ -77,5 +81,16 @@ export function useStatusData(): StatusData {
     };
   });
 
-  return { diseases, schoolClosures, districts, asOf: data.asOf, isLoading, isError };
+  // 都道府県: API データを静的リストにオーバーレイ
+  const prefectures: Prefecture[] = PREFECTURES.map((p) => {
+    const api = data.prefectures?.find((ap) => ap.id === p.id);
+    if (!api) return p;
+    return {
+      ...p,
+      level: api.level as EpidemicLevel,
+      aiSummary: api.aiSummary || p.aiSummary,
+    };
+  });
+
+  return { diseases, schoolClosures, districts, prefectures, asOf: data.asOf, isLoading, isError };
 }
