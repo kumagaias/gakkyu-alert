@@ -343,8 +343,7 @@ export default function MapScreen() {
   const [selectedDistrict, setSelectedDistrict] = useState<District | null>(null);
   const [mapError, setMapError] = useState(false);
 
-  // 居住地の地区ID (例: "nerima") から都道府県ID を推定
-  // シンプルに東京都地区 → "tokyo" にフォールバック
+  // 居住地区ID → 都道府県ID（現状は東京都固定、将来的に全都道府県対応）
   const homePrefId = homeDistrictId ? "tokyo" : null;
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
@@ -360,24 +359,12 @@ export default function MapScreen() {
   const handleMessage = useCallback((raw: string) => {
     try {
       const data = JSON.parse(raw);
-      if (data.type === "prefClick") {
-        // 都道府県クリック: 将来的に都道府県詳細モーダルを表示
-        // 現在は東京都の場合のみ地区詳細へ (既存DistrictModal流用)
-        if (data.id === "tokyo" && homeDistrictId) {
-          const pref = prefectures.find((p) => p.id === "tokyo");
-          if (pref) {
-            // Prefecture を District 互換として扱う
-            setSelectedDistrict({
-              id: pref.id,
-              name: pref.name,
-              level: pref.level,
-              aiSummary: pref.aiSummary,
-            });
-          }
-        }
+      if (data.type === "prefClick" && data.id) {
+        const pref = prefectures.find((p) => p.id === data.id);
+        if (pref) setSelectedDistrict(pref);
       }
     } catch {}
-  }, [prefectures, homeDistrictId]);
+  }, [prefectures]);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
