@@ -383,7 +383,7 @@ export const handler = async (): Promise<void> => {
   for (const rec of idwrRecords) {
     if (!rec.prefectureId) continue;
     const entry = prefMap.get(rec.prefectureId) ?? { flu: 0, covid: 0 };
-    if (rec.diseaseId === "flu")   entry.flu   = rec.perSentinel;
+    if (rec.diseaseId === "flu-a") entry.flu   = rec.perSentinel;
     if (rec.diseaseId === "covid") entry.covid = rec.perSentinel;
     prefMap.set(rec.prefectureId, entry);
   }

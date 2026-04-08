@@ -23,7 +23,7 @@ const IDWR_BASE_URL =
 
 // CSV の日本語疾患名 → アプリの diseaseId マッピング
 const DISEASE_ID_MAP: Record<string, string> = {
-  インフルエンザ: "flu",
+  インフルエンザ: "flu-a", // CSV ではA/B合算のため flu-a に寄せる
   ＲＳウイルス感染症: "rsv",
   手足口病: "hand-foot",
   ヘルパンギーナ: "herpangina",
