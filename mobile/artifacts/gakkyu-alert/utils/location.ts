@@ -1,5 +1,5 @@
 import * as Location from "expo-location";
-import { TOKYO_DISTRICTS, type District } from "@/constants/data";
+import { TOKYO_DISTRICTS, PREFECTURES, type District, type Prefecture } from "@/constants/data";
 import geoData from "@/assets/data/tokyo.json";
 
 // ── point-in-polygon (ray casting) ─────────────────────────────────────────
@@ -152,6 +152,61 @@ export async function resolveDistrictByZip(zip: string): Promise<ZipResult> {
     const district = findDistrictByName(city);
     if (!district) return { type: "unsupported_area" };
     return { type: "success", district };
+  } catch {
+    return { type: "error" };
+  }
+}
+
+// 都道府県名 → Prefecture を解決
+export function findPrefectureByName(name: string): Prefecture | null {
+  return PREFECTURES.find((p) => name.includes(p.name) || p.name.includes(name)) ?? null;
+}
+
+// GPS で Prefecture を解決
+export type GpsPrefResult =
+  | { type: "success"; prefecture: Prefecture }
+  | { type: "permission_denied" }
+  | { type: "not_found" }
+  | { type: "error" };
+
+export async function resolvePrefectureByGps(): Promise<GpsPrefResult> {
+  try {
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== "granted") return { type: "permission_denied" };
+    const loc = await Location.getCurrentPositionAsync({
+      accuracy: Location.Accuracy.Balanced,
+    });
+    const [geo] = await Location.reverseGeocodeAsync({
+      latitude: loc.coords.latitude,
+      longitude: loc.coords.longitude,
+    });
+    if (!geo?.region) return { type: "not_found" };
+    const pref = findPrefectureByName(geo.region);
+    if (!pref) return { type: "not_found" };
+    return { type: "success", prefecture: pref };
+  } catch {
+    return { type: "error" };
+  }
+}
+
+// 郵便番号で Prefecture を解決
+export type ZipPrefResult =
+  | { type: "success"; prefecture: Prefecture }
+  | { type: "invalid_format" }
+  | { type: "not_found" }
+  | { type: "error" };
+
+export async function resolvePrefectureByZip(zip: string): Promise<ZipPrefResult> {
+  const clean = zip.replace(/[^\d]/g, "");
+  if (clean.length !== 7) return { type: "invalid_format" };
+  try {
+    const res = await fetch(`https://zipcloud.ibsnet.co.jp/api/search?zipcode=${clean}`);
+    const data = await res.json();
+    if (!data.results?.[0]) return { type: "not_found" };
+    const prefName: string = data.results[0].address1;
+    const pref = findPrefectureByName(prefName);
+    if (!pref) return { type: "not_found" };
+    return { type: "success", prefecture: pref };
   } catch {
     return { type: "error" };
   }
