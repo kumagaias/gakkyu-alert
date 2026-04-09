@@ -8,7 +8,9 @@ import {
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useColors } from "@/hooks/useColors";
-import { type Disease, type District } from "@/constants/data";
+import { type Disease, type District, TOKYO_DISTRICTS } from "@/constants/data";
+
+const TOKYO_IDS = new Set([...TOKYO_DISTRICTS.map((d) => d.id), "tokyo"]);
 import { useStatusData } from "@/hooks/useStatusData";
 import { EpidemicLevelCard } from "@/components/EpidemicLevelCard";
 import { DiseaseRow } from "@/components/DiseaseRow";
@@ -71,7 +73,7 @@ export function DistrictInfoPanel({ district, showFootnote = true }: Props) {
       <EpidemicLevelCard level={district.level} />
 
       {/* School closure info — Tokyo-wide, above disease trends */}
-      <SchoolClosureCard district={district} />
+      {TOKYO_IDS.has(district.id) && <SchoolClosureCard district={district} />}
 
       {/* Disease trend section */}
       <View>

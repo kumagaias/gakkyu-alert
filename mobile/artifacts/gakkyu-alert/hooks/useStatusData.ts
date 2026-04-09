@@ -64,24 +64,13 @@ export function useStatusData(): StatusData {
     })),
   };
 
-  // Tokyo-wide max level — fallback for districts without per-district API data
+  // Tokyo-wide max level — fallback when API prefecture data is unavailable
   const tokyoMaxLevel = diseases.reduce(
     (max: number, d) => Math.max(max, d.currentLevel),
     0
   ) as EpidemicLevel;
 
-  // Overlay real district levels/summaries; non-API districts use Tokyo-wide level
-  const districts: District[] = TOKYO_DISTRICTS.map((d) => {
-    const api = data.districts.find((ad) => ad.id === d.id);
-    if (!api) return { ...d, level: tokyoMaxLevel };
-    return {
-      ...d,
-      level: api.level as EpidemicLevel,
-      aiSummary: api.aiSummary || d.aiSummary,
-    };
-  });
-
-  // 都道府県: API データを静的リストにオーバーレイ
+  // 都道府県: API データを静的リストにオーバーレイ (prefectures より先に計算)
   const prefectures: Prefecture[] = PREFECTURES.map((p) => {
     const api = data.prefectures?.find((ap) => ap.id === p.id);
     if (!api) return p;
@@ -91,6 +80,16 @@ export function useStatusData(): StatusData {
       aiSummary: api.aiSummary || p.aiSummary,
     };
   });
+
+  // 東京都レベルを都道府県データから取得し、全区市で統一して使う
+  const tokyoPref = prefectures.find((p) => p.id === "tokyo");
+  const tokyoLevel = (tokyoPref?.level ?? tokyoMaxLevel) as EpidemicLevel;
+
+  const districts: District[] = TOKYO_DISTRICTS.map((d) => ({
+    ...d,
+    level: tokyoLevel,
+    aiSummary: tokyoPref?.aiSummary || d.aiSummary,
+  }));
 
   return { diseases, schoolClosures, districts, prefectures, asOf: data.asOf, isLoading, isError };
 }
