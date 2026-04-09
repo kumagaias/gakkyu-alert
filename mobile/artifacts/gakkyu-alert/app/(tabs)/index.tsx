@@ -22,7 +22,7 @@ export default function HomeScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { homeDistrict, children, notifications, isOnboarded } = useApp();
-  const { districts, schoolClosures } = useStatusData();
+  const { prefectures, schoolClosures } = useStatusData();
   const [refreshing, setRefreshing] = useState(false);
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
@@ -30,9 +30,9 @@ export default function HomeScreen() {
 
   if (!isOnboarded) return <Redirect href="/onboarding" />;
 
-  // Merge real API district data (level + aiSummary) over the static homeDistrict
+  // Merge real API prefecture data (level + aiSummary + diseases) over the static homeDistrict
   const realHomeDistrict = homeDistrict
-    ? { ...homeDistrict, ...(districts.find((d) => d.id === homeDistrict.id) ?? {}) }
+    ? { ...homeDistrict, ...(prefectures.find((p) => p.id === homeDistrict.id) ?? {}) }
     : null;
 
   const onRefresh = () => {

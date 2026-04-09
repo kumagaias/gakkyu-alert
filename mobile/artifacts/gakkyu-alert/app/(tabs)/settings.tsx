@@ -15,8 +15,8 @@ import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
 import { useApp, type Child } from "@/contexts/AppContext";
-import { TOKYO_DISTRICTS } from "@/constants/data";
-import { DistrictPickerModal } from "@/components/DistrictPickerModal";
+import { PREFECTURES } from "@/constants/data";
+import { PrefecturePickerModal } from "@/components/PrefecturePickerModal";
 
 function SectionHeader({ title }: { title: string }) {
   const colors = useColors();
@@ -230,7 +230,7 @@ export default function SettingsScreen() {
             }}
           />
           {extraDistrictIds.map((id, i) => {
-            const d = TOKYO_DISTRICTS.find((x) => x.id === id);
+            const d = PREFECTURES.find((x) => x.id === id);
             return (
               <View
                 key={id}
@@ -463,19 +463,13 @@ export default function SettingsScreen() {
         </View>
       </Modal>
 
-      {/* District Picker Modal */}
-      <DistrictPickerModal
+      {/* Prefecture Picker Modal */}
+      <PrefecturePickerModal
         visible={showDistrictPicker}
-        title={pickerTarget === "home" ? "居住エリアを選択" : "エリアを追加"}
-        selectedId={pickerTarget === "home" ? homeDistrict?.id : undefined}
+        title="居住都道府県を選択"
+        selectedId={homeDistrict?.id}
         onClose={() => setShowDistrictPicker(false)}
-        onSelect={(d) => {
-          if (pickerTarget === "home") {
-            setHomeDistrict(d.id);
-          } else {
-            addExtraDistrict(d.id);
-          }
-        }}
+        onSelect={(p) => setHomeDistrict(p.id)}
       />
     </View>
   );

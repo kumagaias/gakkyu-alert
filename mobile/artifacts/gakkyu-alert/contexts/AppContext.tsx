@@ -1,7 +1,14 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
-import { TOKYO_DISTRICTS, type District } from "@/constants/data";
+import { PREFECTURES, TOKYO_DISTRICTS, type Prefecture } from "@/constants/data";
 import { LoadingScreen } from "@/components/LoadingScreen";
+
+// 旧データ移行: Tokyo 区市 ID → "tokyo" に統一
+const TOKYO_DISTRICT_IDS = new Set(TOKYO_DISTRICTS.map((d) => d.id));
+function migrateHomeId(id: string | null): string | null {
+  if (!id) return null;
+  return TOKYO_DISTRICT_IDS.has(id) ? "tokyo" : id;
+}
 
 export interface Child {
   id: string;
@@ -26,7 +33,7 @@ interface AppState {
 }
 
 interface AppContextType extends AppState {
-  homeDistrict: District | null;
+  homeDistrict: Prefecture | null;
   setHomeDistrict: (id: string) => void;
   completeOnboarding: (districtId: string) => void;
   addChild: (child: Omit<Child, "id">) => void;
@@ -64,7 +71,10 @@ export function AppProvider({ children: reactChildren }: { children: React.React
     AsyncStorage.getItem(STORAGE_KEY).then((val) => {
       if (val) {
         try {
-          setState({ ...DEFAULT_STATE, ...JSON.parse(val) });
+          const parsed = JSON.parse(val);
+          // 旧 Tokyo 区市 ID を都道府県 ID に移行
+          parsed.homeDistrictId = migrateHomeId(parsed.homeDistrictId ?? null);
+          setState({ ...DEFAULT_STATE, ...parsed });
         } catch {
           // ignore
         }
@@ -79,7 +89,7 @@ export function AppProvider({ children: reactChildren }: { children: React.React
   }, []);
 
   const homeDistrict = state.homeDistrictId
-    ? (TOKYO_DISTRICTS.find((d) => d.id === state.homeDistrictId) ?? null)
+    ? (PREFECTURES.find((p) => p.id === state.homeDistrictId) ?? null)
     : null;
 
   const setHomeDistrict = useCallback(

@@ -1,13 +1,11 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Animated,
   Easing,
   Image,
   Platform,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -16,9 +14,8 @@ import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
 import { useApp } from "@/contexts/AppContext";
-import { type District } from "@/constants/data";
-import { resolveDistrictByGps, resolveDistrictByZip } from "@/utils/location";
-import { DistrictPickerModal } from "@/components/DistrictPickerModal";
+import { type Prefecture } from "@/constants/data";
+import { PrefecturePickerModal } from "@/components/PrefecturePickerModal";
 
 // ── component ───────────────────────────────────────────────────────────────
 export default function OnboardingScreen() {
@@ -26,46 +23,7 @@ export default function OnboardingScreen() {
   const insets = useSafeAreaInsets();
   const { completeOnboarding, isOnboarded } = useApp();
 
-  const [selected, setSelected] = useState<District | null>(null);
-
-  const [locLoading, setLocLoading] = useState(false);
-  const [locError, setLocError] = useState<string | null>(null);
-
-  const [zipCode, setZipCode] = useState("");
-  const [zipLoading, setZipLoading] = useState(false);
-  const [zipError, setZipError] = useState<string | null>(null);
-
-  // GPS button pulse animation
-  const gpsPulseScale = useRef(new Animated.Value(1)).current;
-  const gpsPulseOpacity = useRef(new Animated.Value(0)).current;
-  const gpsPulseAnim = useRef<Animated.CompositeAnimation | null>(null);
-
-  useEffect(() => {
-    if (locLoading) {
-      gpsPulseOpacity.setValue(0.5);
-      gpsPulseScale.setValue(1);
-      gpsPulseAnim.current = Animated.loop(
-        Animated.parallel([
-          Animated.timing(gpsPulseScale, {
-            toValue: 1.8,
-            duration: 1000,
-            easing: Easing.out(Easing.ease),
-            useNativeDriver: false,
-          }),
-          Animated.timing(gpsPulseOpacity, {
-            toValue: 0,
-            duration: 1000,
-            useNativeDriver: false,
-          }),
-        ])
-      );
-      gpsPulseAnim.current.start();
-    } else {
-      gpsPulseAnim.current?.stop();
-      gpsPulseScale.setValue(1);
-      gpsPulseOpacity.setValue(0);
-    }
-  }, [locLoading]);
+  const [selected, setSelected] = useState<Prefecture | null>(null);
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const botPad = Platform.OS === "web" ? 34 : insets.bottom;
@@ -88,7 +46,7 @@ export default function OnboardingScreen() {
   const wTag1Op    = useRef(new Animated.Value(0)).current;
   const wPitchOp   = useRef(new Animated.Value(0)).current;
 
-  const handleBegin = useCallback((district: District) => {
+  const handleBegin = useCallback((district: Prefecture) => {
     setWelcomeWard(district.name);
     setShowWelcome(true);
 
@@ -136,48 +94,6 @@ export default function OnboardingScreen() {
 
   const [showManualPicker, setShowManualPicker] = useState(false);
 
-  // GPS handler
-  const handleLocation = async () => {
-    setLocLoading(true);
-    setLocError(null);
-    const result = await resolveDistrictByGps();
-    setLocLoading(false);
-    if (result.type === "success") {
-      setSelected(result.district);
-      setLocError(null);
-      setZipError(null);
-    } else {
-      const msgs: Record<string, string> = {
-        permission_denied: "位置情報の許可が必要です",
-        outside_tokyo:     "東京都内の位置情報を取得できませんでした",
-        error:             "位置情報の取得に失敗しました",
-      };
-      setLocError(msgs[result.type] ?? "エラーが発生しました");
-    }
-  };
-
-  // Postal code handler
-  const handleZipSearch = async () => {
-    setZipLoading(true);
-    setZipError(null);
-    const result = await resolveDistrictByZip(zipCode);
-    setZipLoading(false);
-    if (result.type === "success") {
-      setSelected(result.district);
-      setLocError(null);
-      setZipError(null);
-    } else {
-      const msgs: Record<string, string> = {
-        invalid_format:  "7桁の数字で入力してください",
-        not_found:       "郵便番号が見つかりませんでした",
-        outside_tokyo:   "東京都の郵便番号を入力してください",
-        unsupported_area:"対応していない地域です。東京都内の郵便番号を入力してください",
-        error:           "通信エラーが発生しました",
-      };
-      setZipError(msgs[result.type] ?? "エラーが発生しました");
-    }
-  };
-
   return (
     <View style={[styles.container, { backgroundColor: colors.background, paddingTop: topPad }]}>
       {/* Header */}
@@ -189,105 +105,25 @@ export default function OnboardingScreen() {
         />
         <Text style={[styles.appName, { color: colors.foreground }]}>がっきゅうアラート</Text>
         <Text style={[styles.tagline, { color: colors.mutedForeground }]}>
-          お子さんの学校・保育園のある区の{"\n"}感染症情報をチェック{"\n"}
+          お住まいの都道府県の{"\n"}感染症情報をチェック{"\n"}
           <Text style={{ fontSize: 12 }}>(あとから変更できます)</Text>
         </Text>
       </View>
 
-      {/* Quick selection methods */}
+      {/* Prefecture select button */}
       <View style={styles.quickSection}>
-        {/* GPS button */}
-        <View style={styles.gpsBtnWrap}>
-          <Animated.View
-            style={[
-              styles.gpsPulseRing,
-              { backgroundColor: colors.primary, transform: [{ scale: gpsPulseScale }], opacity: gpsPulseOpacity },
-            ]}
-            pointerEvents="none"
-          />
-          <TouchableOpacity
-            style={[styles.gpsBtn, { backgroundColor: colors.primary }]}
-            onPress={handleLocation}
-            disabled={locLoading}
-            activeOpacity={0.85}
-          >
-            {locLoading ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <Feather name="navigation" size={17} color="#fff" />
-            )}
-            <Text style={styles.gpsBtnText}>
-              {locLoading ? "現在地を取得中..." : "現在地から取得"}
-            </Text>
-          </TouchableOpacity>
-        </View>
-        {locError && (
-          <Text style={[styles.errorText, { color: colors.destructive }]}>{locError}</Text>
-        )}
-
-        {/* Divider */}
-        <View style={styles.dividerRow}>
-          <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
-          <Text style={[styles.dividerLabel, { color: colors.mutedForeground }]}>または郵便番号で検索</Text>
-          <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
-        </View>
-
-        {/* Postal code row */}
-        <View style={styles.zipRow}>
-          <View style={[styles.zipWrap, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={[styles.zipMark, { color: colors.mutedForeground }]}>〒</Text>
-            <TextInput
-              style={[styles.zipInput, { color: colors.foreground }]}
-              placeholder="郵便番号（例：1000001）"
-              placeholderTextColor={colors.mutedForeground}
-              value={zipCode}
-              onChangeText={(t) => {
-                setZipCode(t);
-                setZipError(null);
-              }}
-              keyboardType="number-pad"
-              maxLength={8}
-              onSubmitEditing={handleZipSearch}
-              returnKeyType="search"
-            />
-            {zipCode.length > 0 && (
-              <TouchableOpacity onPress={() => { setZipCode(""); setZipError(null); }}>
-                <Feather name="x" size={15} color={colors.mutedForeground} />
-              </TouchableOpacity>
-            )}
-          </View>
-          <TouchableOpacity
-            style={[
-              styles.zipBtn,
-              { backgroundColor: colors.primary, opacity: zipLoading || zipCode.replace(/\D/g, "").length !== 7 ? 0.5 : 1 },
-            ]}
-            onPress={handleZipSearch}
-            disabled={zipLoading || zipCode.replace(/\D/g, "").length !== 7}
-            activeOpacity={0.85}
-          >
-            {zipLoading ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <Text style={[styles.zipBtnText, { color: "#fff" }]}>検索</Text>
-            )}
-          </TouchableOpacity>
-        </View>
-        {zipError && (
-          <Text style={[styles.errorText, { color: colors.destructive }]}>{zipError}</Text>
-        )}
+        <TouchableOpacity
+          style={[styles.selectBtn, { backgroundColor: colors.primary }]}
+          onPress={() => setShowManualPicker(true)}
+          activeOpacity={0.85}
+        >
+          <Feather name="map-pin" size={17} color="#fff" />
+          <Text style={styles.selectBtnText}>
+            {selected ? selected.name : "都道府県を選択"}
+          </Text>
+          <Feather name="chevron-right" size={17} color="rgba(255,255,255,0.7)" />
+        </TouchableOpacity>
       </View>
-
-      {/* Manual picker link */}
-      <TouchableOpacity
-        style={styles.manualPickerBtn}
-        onPress={() => setShowManualPicker(true)}
-        activeOpacity={0.7}
-      >
-        <Feather name="list" size={13} color={colors.mutedForeground} />
-        <Text style={[styles.manualPickerText, { color: colors.mutedForeground }]}>
-          一覧から手動で選択
-        </Text>
-      </TouchableOpacity>
 
       {/* Push CTA to bottom */}
       <View style={{ flex: 1 }} />
@@ -307,17 +143,13 @@ export default function OnboardingScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Manual district picker */}
-      <DistrictPickerModal
+      {/* Prefecture picker */}
+      <PrefecturePickerModal
         visible={showManualPicker}
-        title="エリアを選択"
+        title="都道府県を選択"
         selectedId={selected?.id}
         onClose={() => setShowManualPicker(false)}
-        onSelect={(d) => {
-          setSelected(d);
-          setLocError(null);
-          setZipError(null);
-        }}
+        onSelect={(p) => setSelected(p)}
       />
 
       {/* ── Welcome overlay ── */}
@@ -416,87 +248,23 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
   },
-  // Quick methods
   quickSection: {
     paddingHorizontal: 16,
-    gap: 10,
     marginBottom: 8,
   },
-  gpsBtnWrap: {
-    position: "relative",
-  },
-  gpsPulseRing: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderRadius: 14,
-  },
-  gpsBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    paddingVertical: 13,
-    borderRadius: 14,
-  },
-  gpsBtnText: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#fff",
-  },
-  dividerRow: {
+  selectBtn: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: 14,
   },
-  dividerLine: {
+  selectBtnText: {
     flex: 1,
-    height: 1,
-  },
-  dividerLabel: {
-    fontSize: 12,
-    fontWeight: "500",
-  },
-  zipRow: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  zipWrap: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 12,
-    borderWidth: 1,
-    gap: 8,
-  },
-  zipMark: {
-    fontSize: 15,
-    fontWeight: "600",
-  },
-  zipInput: {
-    flex: 1,
-    fontSize: 15,
-    padding: 0,
-  },
-  zipBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    minWidth: 60,
-  },
-  zipBtnText: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: "700",
-  },
-  errorText: {
-    fontSize: 12,
-    marginTop: -4,
+    color: "#fff",
   },
   footer: {
     paddingHorizontal: 20,
@@ -519,19 +287,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: "center",
   },
-  manualPickerBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    paddingVertical: 10,
-    marginTop: 4,
-  },
-  manualPickerText: {
-    fontSize: 13,
-    fontWeight: "500",
-  },
-
   // Welcome overlay
   welcomeOverlay: {
     alignItems: "center",

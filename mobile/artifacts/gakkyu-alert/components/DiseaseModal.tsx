@@ -56,7 +56,7 @@ export function DiseaseModal({ disease, onClose }: Props) {
 
   if (!disease) return null;
 
-  const maxVal = Math.max(...disease.weeklyHistory, 0.1);
+  const maxVal = Math.max(disease.currentCount, disease.lastWeekCount, disease.twoWeeksAgoCount, ...disease.weeklyHistory, 0.1);
   const levelColors: Record<EpidemicLevel, string> = {
     0: colors.level0,
     1: colors.level1,
