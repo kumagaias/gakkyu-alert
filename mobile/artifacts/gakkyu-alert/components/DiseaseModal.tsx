@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import Svg, { Circle, Line, Path, Text as SvgText } from "react-native-svg";
 import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
@@ -16,6 +17,88 @@ import { type Disease, type EpidemicLevel, LEVEL_NAMES } from "@/constants/data"
 
 const { width } = Dimensions.get("window");
 const BAR_MAX_W = width - 80;
+
+const CHART_W = Math.min(width - 48, 640);
+const CHART_H = 120;
+const PAD = { top: 12, bottom: 28, left: 32, right: 16 };
+
+/** 過去4週 + 未来2週の折れ線グラフ */
+function TrendLineChart({ history, current, level }: { history: number[]; current: number; level: EpidemicLevel }) {
+  const colors = useColors();
+  const levelColors: Record<EpidemicLevel, string> = {
+    0: colors.level0, 1: colors.level1, 2: colors.level2, 3: colors.level3,
+  };
+  const lineColor = levelColors[level];
+
+  // 過去4週 (history の末尾4つ) + 今週
+  const past4 = history.slice(-4);
+  const realPoints = [...past4, current]; // 5点 (index 0〜4)
+  // 未来2週: 今週の値を横ばいで仮表示 (TODO: Nova予測に置き換え)
+  const futurePoints = [current, current]; // index 5〜6
+
+  const allVals = [...realPoints, ...futurePoints];
+  const maxVal = Math.max(...allVals, 0.1);
+
+  const innerW = CHART_W - PAD.left - PAD.right;
+  const innerH = CHART_H - PAD.top - PAD.bottom;
+  const totalPoints = 7; // 5実績 + 2予測
+
+  const xOf = (i: number) => PAD.left + (i / (totalPoints - 1)) * innerW;
+  const yOf = (v: number) => PAD.top + innerH - (v / maxVal) * innerH;
+
+  // 実績の折れ線パス
+  const realPath = realPoints
+    .map((v, i) => `${i === 0 ? "M" : "L"}${xOf(i).toFixed(1)},${yOf(v).toFixed(1)}`)
+    .join(" ");
+
+  // 予測の折れ線パス (今週の点から続く)
+  const futurePath = [realPoints[realPoints.length - 1], ...futurePoints]
+    .map((v, i) => `${i === 0 ? "M" : "L"}${xOf(realPoints.length - 1 + i).toFixed(1)},${yOf(v).toFixed(1)}`)
+    .join(" ");
+
+  const labels = ["-4W", "-3W", "-2W", "-1W", "今週", "+1W", "+2W"];
+
+  return (
+    <Svg width={CHART_W} height={CHART_H}>
+      {/* Y軸ガイドライン */}
+      {[0, 0.5, 1].map((r) => (
+        <Line
+          key={r}
+          x1={PAD.left} y1={PAD.top + innerH * (1 - r)}
+          x2={CHART_W - PAD.right} y2={PAD.top + innerH * (1 - r)}
+          stroke={colors.border} strokeWidth={0.5}
+        />
+      ))}
+      {/* 今週の縦線 */}
+      <Line
+        x1={xOf(4)} y1={PAD.top}
+        x2={xOf(4)} y2={PAD.top + innerH}
+        stroke={colors.border} strokeWidth={1} strokeDasharray="3,3"
+      />
+      {/* 実績折れ線 */}
+      <Path d={realPath} stroke={lineColor} strokeWidth={2.5} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      {/* 予測折れ線（点線） */}
+      <Path d={futurePath} stroke={lineColor} strokeWidth={2} fill="none" strokeDasharray="5,4" strokeLinecap="round" />
+      {/* 実績の点 */}
+      {realPoints.map((v, i) => (
+        <Circle key={i} cx={xOf(i)} cy={yOf(v)} r={i === 4 ? 5 : 3.5}
+          fill={i === 4 ? lineColor : colors.background}
+          stroke={lineColor} strokeWidth={2}
+        />
+      ))}
+      {/* X軸ラベル */}
+      {labels.map((l, i) => (
+        <SvgText key={i} x={xOf(i)} y={CHART_H - 4} textAnchor="middle"
+          fontSize={9} fill={i >= 5 ? colors.mutedForeground + "99" : colors.mutedForeground}
+        >{l}</SvgText>
+      ))}
+      {/* 今週の値ラベル */}
+      <SvgText x={xOf(4)} y={yOf(current) - 8} textAnchor="middle"
+        fontSize={10} fontWeight="700" fill={lineColor}
+      >{current.toFixed(1)}</SvgText>
+    </Svg>
+  );
+}
 
 interface Props {
   disease: Disease | null;
@@ -104,46 +187,25 @@ export function DiseaseModal({ disease, onClose }: Props) {
             </Text>
           </View>
 
-          {/* Weekly counts */}
+          {/* Weekly trend chart */}
           <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={[styles.sectionTitle, { color: colors.mutedForeground }]}>定点あたり患者数</Text>
-            {[
-              { label: "今週", value: disease.currentCount },
-              { label: "先週", value: disease.lastWeekCount },
-              { label: "2週前", value: disease.twoWeeksAgoCount },
-            ].map((row) => (
-              <View key={row.label} style={styles.countRow}>
-                <Text style={[styles.weekLabel, { color: colors.mutedForeground }]}>{row.label}</Text>
-                <MiniBar value={row.value} max={maxVal} level={disease.currentLevel} />
-                <Text style={[styles.countVal, { color: colors.foreground }]}>{row.value.toFixed(1)}</Text>
+            <Text style={[styles.sectionTitle, { color: colors.mutedForeground }]}>週次推移（定点あたり患者数）</Text>
+            <View style={styles.chartWrap}>
+              <TrendLineChart
+                history={disease.weeklyHistory}
+                current={disease.currentCount}
+                level={disease.currentLevel}
+              />
+            </View>
+            <View style={styles.chartLegendRow}>
+              <View style={styles.chartLegendItem}>
+                <View style={[styles.chartLegendLine, { backgroundColor: levelColors[disease.currentLevel] }]} />
+                <Text style={[styles.chartLegendText, { color: colors.mutedForeground }]}>実績</Text>
               </View>
-            ))}
-          </View>
-
-          {/* 8-week chart */}
-          <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={[styles.sectionTitle, { color: colors.mutedForeground }]}>過去8週の推移</Text>
-            <View style={styles.chartArea}>
-              {disease.weeklyHistory.map((val, i) => {
-                const h = maxVal > 0 ? (val / maxVal) * 80 : 2;
-                return (
-                  <View key={i} style={styles.barCol}>
-                    <View style={{ flex: 1, justifyContent: "flex-end" }}>
-                      <View
-                        style={{
-                          height: Math.max(h, 2),
-                          width: 20,
-                          borderRadius: 4,
-                          backgroundColor: i === 5 ? levelColors[disease.currentLevel] : colors.muted,
-                        }}
-                      />
-                    </View>
-                    <Text style={[styles.weekNum, { color: colors.mutedForeground }]}>
-                      {i - 7}W
-                    </Text>
-                  </View>
-                );
-              })}
+              <View style={styles.chartLegendItem}>
+                <View style={[styles.chartLegendDash, { borderColor: levelColors[disease.currentLevel] }]} />
+                <Text style={[styles.chartLegendText, { color: colors.mutedForeground }]}>予測（参考）</Text>
+              </View>
             </View>
           </View>
 
@@ -275,35 +337,34 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
   },
-  countRow: {
+  chartWrap: {
+    alignItems: "center",
+    marginTop: 8,
+  },
+  chartLegendRow: {
+    flexDirection: "row",
+    gap: 16,
+    justifyContent: "center",
+    marginTop: 8,
+  },
+  chartLegendItem: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 6,
   },
-  weekLabel: {
-    fontSize: 13,
-    width: 36,
+  chartLegendLine: {
+    width: 16,
+    height: 2.5,
+    borderRadius: 2,
   },
-  countVal: {
-    fontSize: 14,
-    fontWeight: "600",
-    width: 36,
-    textAlign: "right",
+  chartLegendDash: {
+    width: 16,
+    height: 0,
+    borderTopWidth: 2,
+    borderStyle: "dashed",
   },
-  chartArea: {
-    flexDirection: "row",
-    height: 100,
-    alignItems: "flex-end",
-    gap: 4,
-  },
-  barCol: {
-    flex: 1,
-    alignItems: "center",
-    height: "100%",
-    gap: 4,
-  },
-  weekNum: {
-    fontSize: 9,
+  chartLegendText: {
+    fontSize: 11,
   },
   bodyText: {
     fontSize: 14,

@@ -146,9 +146,9 @@ export function DistrictInfoPanel({ district, showFootnote = true }: Props) {
         )}
 
         {/* Related links */}
-        <View style={styles.linksHeader}>
-          <Feather name="link" size={14} color={colors.mutedForeground} />
-          <Text style={[styles.linksTitle, { color: colors.mutedForeground }]}>関連リンク</Text>
+        <View style={styles.sectionHeader}>
+          <Feather name="link" size={16} color={colors.primary} />
+          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>関連リンク</Text>
         </View>
 
         <View style={[styles.linksCard, { backgroundColor: colors.card, borderColor: colors.border }]}>

@@ -87,22 +87,30 @@ export default function HomeScreen() {
         {/* District info: level card + AI summary + school closures + disease trends */}
         {realHomeDistrict && <DistrictInfoPanel district={realHomeDistrict} />}
 
-        {/* Banners at bottom */}
-        {children.length === 0 && (
-          <BannerCard
-            icon="edit"
-            title="お子さんを登録する"
-            subtitle="学校・保育園の年齢別アラートをお届け"
-            onPress={() => router.push("/(tabs)/settings")}
-          />
-        )}
-        {!notifications.enabled && (
-          <BannerCard
-            icon="bell"
-            title="Push通知をオンにする"
-            subtitle="学級閉鎖の目安になったらすぐお知らせ"
-            onPress={() => router.push("/(tabs)/settings")}
-          />
+        {/* おすすめ: 未設定の項目がある場合のみ表示 */}
+        {(children.length === 0 || !notifications.enabled) && (
+          <>
+            <View style={styles.recommendHeader}>
+              <Feather name="star" size={16} color={colors.primary} />
+              <Text style={[styles.recommendTitle, { color: colors.foreground }]}>おすすめ</Text>
+            </View>
+            {children.length === 0 && (
+              <BannerCard
+                icon="edit"
+                title="お子さんを登録する"
+                subtitle="学校・保育園の年齢別アラートをお届け"
+                onPress={() => router.push("/(tabs)/settings")}
+              />
+            )}
+            {!notifications.enabled && (
+              <BannerCard
+                icon="bell"
+                title="Push通知をオンにする"
+                subtitle="学級閉鎖の目安になったらすぐお知らせ"
+                onPress={() => router.push("/(tabs)/settings")}
+              />
+            )}
+          </>
         )}
       </ScrollView>
 
@@ -151,6 +159,21 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 16,
-    gap: 12,
+    gap: 20,
+    ...(Platform.OS === "web" && {
+      maxWidth: 680,
+      width: "100%",
+      alignSelf: "center" as const,
+    }),
+  },
+  recommendHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 4,
+  },
+  recommendTitle: {
+    fontSize: 17,
+    fontWeight: "700",
   },
 });

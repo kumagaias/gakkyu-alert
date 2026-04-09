@@ -84,10 +84,8 @@ function ClosureRow({
         <Text style={[styles.diseaseName, { color: colors.foreground }]} numberOfLines={1}>
           {diseaseName}
         </Text>
-        {closedClasses > 0 ? (
+        {closedClasses > 0 && (
           <Text style={[styles.levelLabel, { color: dotColor }]}>閉鎖中</Text>
-        ) : (
-          <Text style={[styles.levelLabel, { color: colors.mutedForeground }]}>閉鎖なし</Text>
         )}
       </View>
       {closedClasses > 0 ? (
@@ -189,7 +187,7 @@ export function SchoolClosureCard({ district, prefClosure, prefName }: Props) {
           <Text style={[styles.sectionTitle, { color: colors.foreground }]}>学級閉鎖情報</Text>
           <View style={[styles.badge, { backgroundColor: allClear ? colors.successBg : colors.level1Bg }]}>
             <Text style={[styles.badgeText, { color: allClear ? colors.success : colors.level2 }]}>
-              {!prefClosure.hasData ? "データなし" : allClear ? "閉鎖なし" : `計${totalClosed}クラス`}
+              {!prefClosure.hasData ? "データなし" : allClear ? "" : `計${totalClosed}クラス`}
             </Text>
           </View>
           {prefName && (
@@ -216,11 +214,13 @@ export function SchoolClosureCard({ district, prefClosure, prefName }: Props) {
       <View style={styles.sectionHeader}>
         <Feather name="alert-circle" size={16} color={colors.primary} />
         <Text style={[styles.sectionTitle, { color: colors.foreground }]}>学級閉鎖情報</Text>
-        <View style={[styles.badge, { backgroundColor: allClear ? colors.successBg : colors.level1Bg }]}>
-          <Text style={[styles.badgeText, { color: allClear ? colors.success : colors.level2 }]}>
-            {allClear ? "閉鎖なし" : `計${totalClosed}クラス`}
-          </Text>
-        </View>
+        {!allClear && (
+          <View style={[styles.badge, { backgroundColor: colors.level1Bg }]}>
+            <Text style={[styles.badgeText, { color: colors.level2 }]}>
+              {`計${totalClosed}クラス`}
+            </Text>
+          </View>
+        )}
         <Text style={[styles.headerSub, { color: colors.mutedForeground }]}>東京都</Text>
       </View>
 
