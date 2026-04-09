@@ -15,7 +15,7 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "jp.gakkyualert.app",
+      "bundleIdentifier": "jp.gakkyu-alert.app",
       "icon": "./assets/images/icon.png",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "現在地から居住都道府県を自動取得するために使用します。"
