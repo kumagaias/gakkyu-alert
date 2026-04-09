@@ -8,43 +8,36 @@ import {
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useColors } from "@/hooks/useColors";
-import { DISEASES, type Disease, type District } from "@/constants/data";
+import { DISEASES, PREF_IDSC_URLS, type Disease, type District } from "@/constants/data";
 import { useStatusData } from "@/hooks/useStatusData";
 import { EpidemicLevelCard } from "@/components/EpidemicLevelCard";
 import { DiseaseRow } from "@/components/DiseaseRow";
 import { DiseaseModal } from "@/components/DiseaseModal";
 import { SchoolClosureCard } from "@/components/SchoolClosureCard";
 
-const RELATED_LINKS = [
-  {
-    id: "idsc",
-    icon: "activity" as const,
-    title: "東京都感染症情報センター",
-    sub: "最新の感染症発生動向データ",
-    url: "https://idsc.tmiph.metro.tokyo.lg.jp/",
-  },
-  {
-    id: "flu-weekly",
-    icon: "bar-chart-2" as const,
-    title: "インフルエンザ週報（東京都）",
-    sub: "週次インフルエンザ・新型コロナ統計",
-    url: "https://idsc.tmiph.metro.tokyo.lg.jp/diseases/influ/influ-wkly/",
-  },
-  {
-    id: "hokeniryo",
-    icon: "shield" as const,
-    title: "東京都保健医療局 感染症対策",
-    sub: "感染症対策・注意報・警報情報",
-    url: "https://www.hokeniryo.metro.tokyo.lg.jp/kansen/",
-  },
-  {
-    id: "niid",
-    icon: "globe" as const,
-    title: "国立感染症研究所（NIID）",
-    sub: "全国の感染症発生動向・IDWR",
-    url: "https://www.niid.go.jp/niid/ja/",
-  },
-];
+const NIID_LINK = {
+  id: "niid",
+  icon: "globe" as const,
+  title: "国立感染症研究所（NIID）",
+  sub: "全国の感染症発生動向・IDWR",
+  url: "https://www.niid.go.jp/niid/ja/",
+};
+
+function getRelatedLinks(districtId: string) {
+  const idscUrl = PREF_IDSC_URLS[districtId];
+  const links = [];
+  if (idscUrl) {
+    links.push({
+      id: "idsc",
+      icon: "activity" as const,
+      title: "感染症情報センター",
+      sub: "最新の感染症発生動向データ",
+      url: idscUrl,
+    });
+  }
+  links.push(NIID_LINK);
+  return links;
+}
 
 interface Props {
   district: District;
@@ -159,7 +152,7 @@ export function DistrictInfoPanel({ district, showFootnote = true }: Props) {
         </View>
 
         <View style={[styles.linksCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          {RELATED_LINKS.map((link, i) => (
+          {getRelatedLinks(district.id).map((link, i) => (
             <TouchableOpacity
               key={link.id}
               style={[
