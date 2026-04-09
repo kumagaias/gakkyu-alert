@@ -30,8 +30,9 @@ function TrendLineChart({ history, current, level }: { history: number[]; curren
   };
   const lineColor = levelColors[level];
 
-  // 過去4週 (history の末尾4つ) + 今週
-  const past4 = history.slice(-4);
+  // 過去4週 (history の末尾5つのうち最新を除く) + 今週
+  // history の末尾 = 今週の値なので、-5〜-1 で過去4週を取得
+  const past4 = history.slice(-5, -1);
   const realPoints = [...past4, current]; // 5点 (index 0〜4)
   // 未来2週: 今週の値を横ばいで仮表示 (TODO: Nova予測に置き換え)
   const futurePoints = [current, current]; // index 5〜6
