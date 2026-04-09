@@ -173,27 +173,16 @@ export function DiseaseModal({ disease, onClose }: Props) {
               </View>
             ))}
 
-            {/* Doctor clearance */}
+          {/* TODO: 医師の許可証 — 将来実装
             <View style={[styles.clearanceRow, { borderTopColor: colors.border }]}>
               <Text style={[styles.clearanceLabel, { color: colors.mutedForeground }]}>医師の許可証</Text>
-              <View
-                style={[
-                  styles.clearanceBadge,
-                  {
-                    backgroundColor: disease.doctorClearance ? colors.level1Bg : colors.successBg,
-                  },
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.clearanceText,
-                    { color: disease.doctorClearance ? "#854d0e" : "#166534" },
-                  ]}
-                >
+              <View style={[styles.clearanceBadge, { backgroundColor: disease.doctorClearance ? colors.level1Bg : colors.successBg }]}>
+                <Text style={[styles.clearanceText, { color: disease.doctorClearance ? "#854d0e" : "#166534" }]}>
                   {disease.doctorClearance ? "必要" : "不要"}
                 </Text>
               </View>
             </View>
+          */}
           </View>
 
           {/* Disclaimer */}
