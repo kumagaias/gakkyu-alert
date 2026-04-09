@@ -45,9 +45,8 @@ function MiniBar({ value, max, level }: { value: number; max: number; level: Epi
 }
 
 const INSTITUTION_ROWS = [
-  { key: "hoikuen" as const,  label: "保育園・幼稚園", icon: "sun" as const },
-  { key: "shogakko" as const, label: "小　学　校",      icon: "book" as const },
-  { key: "chugakko" as const, label: "中学校・高校",    icon: "award" as const },
+  { key: "hoikuen" as const, label: "保育園・幼稚園（参考）", icon: "sun" as const },
+  { key: "gakko" as const,   label: "小学校〜高校（共通）",   icon: "book" as const },
 ];
 
 export function DiseaseModal({ disease, onClose }: Props) {
@@ -151,7 +150,7 @@ export function DiseaseModal({ disease, onClose }: Props) {
           <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <View style={styles.rowWithIcon}>
               <Feather name="book-open" size={14} color={colors.mutedForeground} />
-              <Text style={[styles.sectionTitle, { color: colors.mutedForeground }]}>感染症の出席停止規定</Text>
+              <Text style={[styles.sectionTitle, { color: colors.mutedForeground }]}>出席停止規定（参考）</Text>
             </View>
 
             {INSTITUTION_ROWS.map((inst, idx) => (
@@ -170,6 +169,11 @@ export function DiseaseModal({ disease, onClose }: Props) {
                     {disease.schoolRules[inst.key]}
                   </Text>
                 </View>
+                {inst.key === "hoikuen" && (
+                  <Text style={[styles.hoikuenNote, { color: colors.mutedForeground }]}>
+                    ※ 各自治体・施設により異なる場合があります。施設にお問い合わせください。
+                  </Text>
+                )}
               </View>
             ))}
 
@@ -320,6 +324,13 @@ const styles = StyleSheet.create({
   ruleText: {
     fontSize: 13,
     lineHeight: 20,
+  },
+  hoikuenNote: {
+    fontSize: 11,
+    lineHeight: 16,
+    paddingHorizontal: 16,
+    paddingBottom: 10,
+    marginTop: -2,
   },
   divider: {
     height: StyleSheet.hairlineWidth,

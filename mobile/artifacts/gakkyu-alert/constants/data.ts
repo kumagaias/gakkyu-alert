@@ -8,9 +8,8 @@ export const LEVEL_NAMES: Record<EpidemicLevel, string> = {
 };
 
 export interface SchoolRules {
-  hoikuen: string;   // 保育園・幼稚園
-  shogakko: string;  // 小学校
-  chugakko: string;  // 中学校・高校
+  hoikuen: string;  // 保育園・幼稚園（参考）
+  gakko: string;    // 小学校〜高校（共通）
 }
 
 export interface Disease {
@@ -178,11 +177,10 @@ export const DISEASES: Disease[] = [
     weeklyHistory: [2.1, 3.4, 5.0, 7.3, 12.1, 18.4, 18.4, 18.4],
     schoolRules: {
       hoikuen:  "発症後5日、かつ解熱後3日を経過するまで（幼児規定）",
-      shogakko: "発症後5日、かつ解熱後2日を経過するまで",
-      chugakko: "発症後5日、かつ解熱後2日を経過するまで",
+      gakko:    "発症後5日、かつ解熱後2日を経過するまで",
     },
     doctorClearance: false,
-    aiComment: "今週は急激な増加傾向。定点あたり18人を超え、流行期に突入しています。",
+    aiComment: "",
   },
   {
     id: "flu-b",
@@ -195,11 +193,10 @@ export const DISEASES: Disease[] = [
     weeklyHistory: [0.5, 1.0, 1.8, 2.8, 4.1, 6.2, 6.2, 6.2],
     schoolRules: {
       hoikuen:  "発症後5日、かつ解熱後3日を経過するまで（幼児規定）",
-      shogakko: "発症後5日、かつ解熱後2日を経過するまで",
-      chugakko: "発症後5日、かつ解熱後2日を経過するまで",
+      gakko:    "発症後5日、かつ解熱後2日を経過するまで",
     },
     doctorClearance: false,
-    aiComment: "A型に続いてB型も増加中。同時流行に注意が必要です。",
+    aiComment: "",
   },
   {
     id: "noro",
@@ -212,11 +209,10 @@ export const DISEASES: Disease[] = [
     weeklyHistory: [8.1, 7.5, 6.8, 6.0, 5.3, 4.8, 4.8, 4.8],
     schoolRules: {
       hoikuen:  "嘔吐・下痢症状が消失してから2日経過するまで",
-      shogakko: "症状が消失してから2日経過するまで（目安）",
-      chugakko: "症状が消失してから2日経過するまで（目安）",
+      gakko:    "病状により医師が感染のおそれなしと認めるまで（第三種感染症）",
     },
     doctorClearance: false,
-    aiComment: "ピークを過ぎ減少傾向ですが、まだ警戒レベルを維持しています。",
+    aiComment: "",
   },
   {
     id: "rsv",
@@ -229,11 +225,10 @@ export const DISEASES: Disease[] = [
     weeklyHistory: [3.5, 3.2, 3.0, 2.8, 2.4, 2.1, 2.1, 2.1],
     schoolRules: {
       hoikuen:  "医師が感染のおそれがないと認めるまで",
-      shogakko: "医師の判断による（法的規定なし）",
-      chugakko: "医師の判断による（法的規定なし）",
+      gakko:    "病状により医師が感染のおそれなしと認めるまで（第三種感染症）",
     },
     doctorClearance: true,
-    aiComment: "緩やかな減少傾向。乳幼児施設での集団感染に引き続き注意。",
+    aiComment: "",
   },
   {
     id: "strep",
@@ -246,11 +241,10 @@ export const DISEASES: Disease[] = [
     weeklyHistory: [1.8, 2.0, 2.2, 2.5, 2.9, 3.2, 3.2, 3.2],
     schoolRules: {
       hoikuen:  "抗菌薬内服開始後24〜48時間経過し、症状が消失するまで",
-      shogakko: "抗菌薬内服開始後24〜48時間経過し、症状が消失するまで",
-      chugakko: "抗菌薬内服開始後24〜48時間経過し、症状が消失するまで",
+      gakko:    "抗菌薬内服開始後24〜48時間経過し、症状が消失するまで",
     },
     doctorClearance: false,
-    aiComment: "小幅な増加傾向。喉の痛みや発熱のある場合は早めの検査を。",
+    aiComment: "",
   },
   {
     id: "mycoplasma",
@@ -263,11 +257,10 @@ export const DISEASES: Disease[] = [
     weeklyHistory: [0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 1.8, 1.8],
     schoolRules: {
       hoikuen:  "医師が感染のおそれがないと認めるまで",
-      shogakko: "医師の判断による（法的規定なし）",
-      chugakko: "医師の判断による（法的規定なし）",
+      gakko:    "病状により医師が感染のおそれなしと認めるまで（第三種感染症）",
     },
     doctorClearance: true,
-    aiComment: "長引く咳が特徴。学齢期の子どもに多く、注意が必要です。",
+    aiComment: "",
   },
   {
     id: "covid",
@@ -279,12 +272,11 @@ export const DISEASES: Disease[] = [
     twoWeeksAgoCount: 2.1,
     weeklyHistory: [1.5, 1.8, 2.0, 2.1, 2.3, 2.5, 2.5, 2.5],
     schoolRules: {
-      hoikuen:  "発症後5日、かつ症状軽快後2日を経過するまで",
-      shogakko: "発症後5日、かつ症状軽快後1日を経過するまで",
-      chugakko: "発症後5日、かつ症状軽快後1日を経過するまで",
+      hoikuen:  "発症後5日、かつ症状軽快後1日を経過するまで",
+      gakko:    "発症後5日、かつ症状軽快後1日を経過するまで",
     },
     doctorClearance: false,
-    aiComment: "低レベルでの継続的な流行が続いています。感染対策の継続を。",
+    aiComment: "",
   },
   {
     id: "hand-foot",
@@ -297,11 +289,10 @@ export const DISEASES: Disease[] = [
     weeklyHistory: [2.1, 1.8, 1.2, 0.8, 0.6, 0.5, 0.4, 0.4],
     schoolRules: {
       hoikuen:  "医師が感染のおそれがないと認めるまで",
-      shogakko: "医師の判断による（第三種として対応）",
-      chugakko: "医師の判断による（第三種として対応）",
+      gakko:    "病状により医師が感染のおそれなしと認めるまで（第三種感染症）",
     },
     doctorClearance: true,
-    aiComment: "流行はほぼ収束。例年夏に流行するため、引き続き動向を注視。",
+    aiComment: "",
   },
   {
     id: "mumps",
@@ -314,11 +305,10 @@ export const DISEASES: Disease[] = [
     weeklyHistory: [0.5, 0.4, 0.4, 0.3, 0.3, 0.2, 0.2, 0.2],
     schoolRules: {
       hoikuen:  "耳下腺等の腫脹が発現してから5日経過し、全身状態が良好になるまで",
-      shogakko: "耳下腺等の腫脹が発現してから5日経過し、全身状態が良好になるまで",
-      chugakko: "耳下腺等の腫脹が発現してから5日経過し、全身状態が良好になるまで",
+      gakko:    "耳下腺等の腫脹が発現してから5日経過し、全身状態が良好になるまで",
     },
     doctorClearance: false,
-    aiComment: "散発的な発生が続いていますが、流行レベルには達していません。",
+    aiComment: "",
   },
   {
     id: "chickenpox",
@@ -331,11 +321,10 @@ export const DISEASES: Disease[] = [
     weeklyHistory: [1.2, 1.0, 0.9, 0.8, 0.7, 0.6, 0.6, 0.6],
     schoolRules: {
       hoikuen:  "すべての発疹が痂皮化するまで",
-      shogakko: "すべての発疹が痂皮化するまで",
-      chugakko: "すべての発疹が痂皮化するまで",
+      gakko:    "すべての発疹が痂皮化するまで",
     },
     doctorClearance: false,
-    aiComment: "平穏な状態を維持。ワクチン未接種の子どもは早めの接種を検討。",
+    aiComment: "",
   },
   {
     id: "measles",
@@ -348,11 +337,10 @@ export const DISEASES: Disease[] = [
     weeklyHistory: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
     schoolRules: {
       hoikuen:  "解熱後3日を経過するまで",
-      shogakko: "解熱後3日を経過するまで",
-      chugakko: "解熱後3日を経過するまで",
+      gakko:    "解熱後3日を経過するまで",
     },
     doctorClearance: false,
-    aiComment: "報告なし。海外渡航前のワクチン接種状況の確認をお勧めします。",
+    aiComment: "",
   },
   {
     id: "rubella",
@@ -365,11 +353,10 @@ export const DISEASES: Disease[] = [
     weeklyHistory: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
     schoolRules: {
       hoikuen:  "発疹が消失するまで",
-      shogakko: "発疹が消失するまで",
-      chugakko: "発疹が消失するまで",
+      gakko:    "発疹が消失するまで",
     },
     doctorClearance: false,
-    aiComment: "報告なし。妊婦の方との接触に注意してください。",
+    aiComment: "",
   },
   {
     id: "pertussis",
@@ -382,11 +369,10 @@ export const DISEASES: Disease[] = [
     weeklyHistory: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1],
     schoolRules: {
       hoikuen:  "特有の咳が消失するまで、または5日間の抗菌薬療法を終了するまで",
-      shogakko: "特有の咳が消失するまで、または5日間の抗菌薬療法を終了するまで",
-      chugakko: "特有の咳が消失するまで、または5日間の抗菌薬療法を終了するまで",
+      gakko:    "特有の咳が消失するまで、または5日間の抗菌薬療法を終了するまで",
     },
     doctorClearance: false,
-    aiComment: "低レベルで推移。長引く咳の場合は医療機関の受診を。",
+    aiComment: "",
   },
   {
     id: "adeno",
@@ -399,11 +385,10 @@ export const DISEASES: Disease[] = [
     weeklyHistory: [0.5, 0.6, 0.7, 0.7, 0.9, 0.8, 0.8, 0.8],
     schoolRules: {
       hoikuen:  "主要症状が消退した後2日を経過するまで",
-      shogakko: "主要症状が消退した後2日を経過するまで",
-      chugakko: "主要症状が消退した後2日を経過するまで",
+      gakko:    "主要症状が消退した後2日を経過するまで",
     },
     doctorClearance: false,
-    aiComment: "平穏な状態。プール活動前のタオル共有を避けましょう。",
+    aiComment: "",
   },
   {
     id: "gastro",
@@ -416,11 +401,10 @@ export const DISEASES: Disease[] = [
     weeklyHistory: [2.0, 2.5, 3.0, 3.1, 3.5, 3.8, 3.8, 3.8],
     schoolRules: {
       hoikuen:  "嘔吐・下痢症状が消失してから2日経過するまで",
-      shogakko: "医師の判断による（法的規定なし）",
-      chugakko: "医師の判断による（法的規定なし）",
+      gakko:    "病状により医師が感染のおそれなしと認めるまで（第三種感染症）",
     },
     doctorClearance: true,
-    aiComment: "緩やかな増加傾向。手洗いの徹底と食品管理に気をつけて。",
+    aiComment: "",
   },
   {
     id: "herpangina",
@@ -433,11 +417,10 @@ export const DISEASES: Disease[] = [
     weeklyHistory: [1.5, 1.2, 0.8, 0.5, 0.4, 0.3, 0.3, 0.3],
     schoolRules: {
       hoikuen:  "医師が感染のおそれがないと認めるまで",
-      shogakko: "医師の判断による（法的規定なし）",
-      chugakko: "医師の判断による（法的規定なし）",
+      gakko:    "病状により医師が感染のおそれなしと認めるまで（第三種感染症）",
     },
     doctorClearance: true,
-    aiComment: "例年夏に流行するウイルスですが、現在は平穏な状態です。",
+    aiComment: "",
   },
 ];
 
