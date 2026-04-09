@@ -2,6 +2,7 @@ import React from "react";
 import {
   Dimensions,
   Modal,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -171,7 +172,7 @@ export function DiseaseModal({ disease, onClose }: Props) {
                 </View>
                 {inst.key === "hoikuen" && (
                   <Text style={[styles.hoikuenNote, { color: colors.mutedForeground }]}>
-                    ※ 各自治体・施設により異なる場合があります。施設にお問い合わせください。
+                    ※ 各自治体・施設により異なる場合がありますのでお問い合わせください。
                   </Text>
                 )}
               </View>
@@ -203,6 +204,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingTop: 8,
+    ...(Platform.OS === "web" && {
+      maxWidth: 680,
+      width: "100%",
+      alignSelf: "center" as const,
+    }),
   },
   handle: {
     width: 36,

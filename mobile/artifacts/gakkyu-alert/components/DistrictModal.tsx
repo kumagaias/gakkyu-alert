@@ -1,6 +1,7 @@
 import React from "react";
 import {
   Modal,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -86,6 +87,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingTop: 8,
+    ...(Platform.OS === "web" && {
+      maxWidth: 680,
+      width: "100%",
+      alignSelf: "center" as const,
+    }),
   },
   handle: {
     width: 36,
