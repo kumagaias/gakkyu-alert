@@ -156,6 +156,7 @@ function buildMapHTML(
         return;
       }
 
+      var prefLayers = {};
       var layer = L.geoJSON({ type: 'FeatureCollection', features: features }, {
         style: function(f) {
           var prefId = getPrefId(f.properties);
@@ -171,6 +172,7 @@ function buildMapHTML(
           var prefId = getPrefId(f.properties);
           var name = getPrefName(f.properties);
           var lv = getLevel(prefId);
+          if (prefId !== null) { prefLayers[prefId] = lyr; }
           lyr.on('click', function(e) {
             L.DomEvent.stopPropagation(e);
             send({ type: 'prefClick', id: prefId, name: name });
@@ -197,7 +199,13 @@ function buildMapHTML(
         }
       }).addTo(map);
 
+      // 全国表示 → 居住地都道府県にズームイン
       map.fitBounds(layer.getBounds(), { padding: [10, 10] });
+      if (HOME_PREF && prefLayers[HOME_PREF]) {
+        setTimeout(function() {
+          map.fitBounds(prefLayers[HOME_PREF].getBounds(), { padding: [60, 60], maxZoom: 9 });
+        }, 400);
+      }
       send({ type: 'ready', count: features.length });
     }
 

@@ -121,53 +121,56 @@ function TrendLineChart({ history, lastUpdated }: { history: number[]; lastUpdat
         />
 
         {/* Per-point: value label, dot, date label */}
-        {pts.map((p, i) => (
-          <G key={i}>
-            {/* Value above dot */}
-            <SvgText
-              x={p.x} y={p.y - 8}
-              textAnchor="middle"
-              fontSize={9}
-              fontWeight={p.isCurrent ? "700" : "400"}
-              fill={p.isCurrent ? colors.primary : colors.mutedForeground}
-            >
-              {p.val}
-            </SvgText>
-
-            {/* Dot */}
-            <Circle
-              cx={p.x} cy={p.y}
-              r={p.isCurrent ? 5.5 : 3.5}
-              fill={p.isCurrent ? colors.primary : colors.background}
-              stroke={colors.primary}
-              strokeWidth={2}
-            />
-
-            {/* Date (M/D) */}
-            <SvgText
-              x={p.x} y={HEIGHT - PAD_BOT + 14}
-              textAnchor="middle"
-              fontSize={9}
-              fontWeight={p.isCurrent ? "700" : "400"}
-              fill={p.isCurrent ? colors.primary : colors.mutedForeground}
-            >
-              {p.label}
-            </SvgText>
-
-            {/* 今週 / 先週 tag */}
-            {(p.isCurrent || p.isPrev) && (
+        {pts.map((p, i) => {
+          const anchor = i === 0 ? "start" : i === n - 1 ? "end" : "middle";
+          return (
+            <G key={i}>
+              {/* Value above dot */}
               <SvgText
-                x={p.x} y={HEIGHT - PAD_BOT + 26}
-                textAnchor="middle"
-                fontSize={8}
-                fontWeight="700"
+                x={p.x} y={p.y - 8}
+                textAnchor={anchor}
+                fontSize={9}
+                fontWeight={p.isCurrent ? "700" : "400"}
                 fill={p.isCurrent ? colors.primary : colors.mutedForeground}
               >
-                {p.isCurrent ? "今週" : "先週"}
+                {p.val}
               </SvgText>
-            )}
-          </G>
-        ))}
+
+              {/* Dot */}
+              <Circle
+                cx={p.x} cy={p.y}
+                r={p.isCurrent ? 5.5 : 3.5}
+                fill={p.isCurrent ? colors.primary : colors.background}
+                stroke={colors.primary}
+                strokeWidth={2}
+              />
+
+              {/* Date (M/D) */}
+              <SvgText
+                x={p.x} y={HEIGHT - PAD_BOT + 14}
+                textAnchor={anchor}
+                fontSize={9}
+                fontWeight={p.isCurrent ? "700" : "400"}
+                fill={p.isCurrent ? colors.primary : colors.mutedForeground}
+              >
+                {p.label}
+              </SvgText>
+
+              {/* 今週 / 先週 tag */}
+              {(p.isCurrent || p.isPrev) && (
+                <SvgText
+                  x={p.x} y={HEIGHT - PAD_BOT + 26}
+                  textAnchor={anchor}
+                  fontSize={8}
+                  fontWeight="700"
+                  fill={p.isCurrent ? colors.primary : colors.mutedForeground}
+                >
+                  {p.isCurrent ? "今週" : "先週"}
+                </SvgText>
+              )}
+            </G>
+          );
+        })}
       </Svg>
     </View>
   );
