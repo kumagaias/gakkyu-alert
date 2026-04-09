@@ -189,6 +189,7 @@ export function DiseaseModal({ disease, onClose }: Props) {
           </View>
 
           {/* Weekly trend chart */}
+          {disease.weeklyHistory.length >= 5 && (
           <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <Text style={[styles.sectionTitle, { color: colors.mutedForeground }]}>週次推移（定点あたり患者数）</Text>
             <View style={styles.chartWrap}>
@@ -209,6 +210,7 @@ export function DiseaseModal({ disease, onClose }: Props) {
               </View>
             </View>
           </View>
+          )}
 
           {/* School rules — split by institution */}
           <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>

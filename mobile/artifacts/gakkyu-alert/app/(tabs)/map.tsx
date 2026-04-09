@@ -157,20 +157,17 @@ function buildMapHTML(
         style: function(f) {
           var prefId = getPrefId(f.properties);
           var lv = getLevel(prefId);
-          var isHome = prefId !== null && prefId === HOME_PREF;
           return {
             fillColor: lv >= 0 ? COLORS[lv] : '#cbd5e1',
             fillOpacity: 0.6,
-            color: isHome ? '#1d4ed8' : '#ffffff',
-            weight: isHome ? 2.5 : 0.8,
+            color: '#ffffff',
+            weight: 0.8,
           };
         },
         onEachFeature: function(f, lyr) {
           var prefId = getPrefId(f.properties);
           var name = getPrefName(f.properties);
           var lv = getLevel(prefId);
-          var isHome = prefId !== null && prefId === HOME_PREF;
-
           lyr.on('click', function(e) {
             L.DomEvent.stopPropagation(e);
             send({ type: 'prefClick', id: prefId, name: name });
@@ -398,10 +395,6 @@ export default function MapScreen() {
             </View>
           );
         })}
-        <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { borderWidth: 2, borderColor: colors.primary, backgroundColor: "transparent" }]} />
-          <Text style={[styles.legendText, { color: colors.mutedForeground }]}>居住区</Text>
-        </View>
       </View>
 
       {/* Map */}
