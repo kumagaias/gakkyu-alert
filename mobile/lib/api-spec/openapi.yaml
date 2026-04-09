@@ -110,12 +110,18 @@ components:
           description: 全47都道府県の流行レベル
           items:
             $ref: "#/components/schemas/PrefectureStatus"
+        prefClosures:
+          type: array
+          description: 都道府県別学校閉鎖クラス数 (学校等欠席者・感染症情報システム)
+          items:
+            $ref: "#/components/schemas/PrefClosureStatus"
       required:
         - asOf
         - schoolClosures
         - diseases
         - districts
         - prefectures
+        - prefClosures
 
     SchoolClosuresData:
       type: object
@@ -251,6 +257,43 @@ components:
         - id
         - level
         - aiSummary
+        - diseases
+
+    PrefClosureDisease:
+      type: object
+      description: 都道府県別・疾患別閉鎖クラス数
+      properties:
+        id:
+          type: string
+          description: 疾患ID (例: "flu", "covid")
+        closedClasses:
+          type: integer
+          description: 今週の閉鎖クラス数
+        weekAgoClasses:
+          type: integer
+          description: 先週の閉鎖クラス数
+      required:
+        - id
+        - closedClasses
+        - weekAgoClasses
+
+    PrefClosureStatus:
+      type: object
+      description: 都道府県別学校閉鎖クラス数
+      properties:
+        id:
+          type: string
+          description: 都道府県ID (例: "tokyo")
+        hasData:
+          type: boolean
+          description: 学校等欠席者・感染症情報システムに参加しているか
+        diseases:
+          type: array
+          items:
+            $ref: "#/components/schemas/PrefClosureDisease"
+      required:
+        - id
+        - hasData
         - diseases
 
     # ── Devices ────────────────────────────────────────────

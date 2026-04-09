@@ -7,6 +7,7 @@
  */
 import type { DiseaseStatus } from "./diseaseStatus";
 import type { DistrictStatus } from "./districtStatus";
+import type { PrefClosureStatus } from "./prefClosureStatus";
 import type { PrefectureStatus } from "./prefectureStatus";
 import type { SchoolClosuresData } from "./schoolClosuresData";
 
@@ -18,4 +19,6 @@ export interface StatusResponse {
   districts: DistrictStatus[];
   /** 全47都道府県の流行レベル */
   prefectures: PrefectureStatus[];
+  /** 都道府県別学校閉鎖クラス数 (学校等欠席者・感染症情報システム) */
+  prefClosures: PrefClosureStatus[];
 }

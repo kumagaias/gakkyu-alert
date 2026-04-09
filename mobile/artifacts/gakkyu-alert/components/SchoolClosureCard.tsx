@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import {
+  Linking,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -7,13 +8,29 @@ import {
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useColors } from "@/hooks/useColors";
-import { type District, type SchoolClosureEntry } from "@/constants/data";
+import {
+  DISEASES,
+  type District,
+  type PrefClosureStatus,
+  type SchoolClosureEntry,
+} from "@/constants/data";
 import { useStatusData } from "@/hooks/useStatusData";
 import { SchoolClosureModal } from "@/components/SchoolClosureModal";
 
 interface Props {
   district?: District | null;
+  prefClosure?: PrefClosureStatus;
+  prefName?: string;
 }
+
+const SYSTEM_URL = "https://www.gakkohoken.jp/system_information/";
+
+// IDs not in DISEASES (e.g. combined "flu", "gastro", "other")
+const FALLBACK_DISEASE_NAMES: Record<string, string> = {
+  flu:    "インフルエンザ",
+  gastro: "感染性胃腸炎",
+  other:  "その他感染症",
+};
 
 function TrendBadge({ current, prev }: { current: number; prev: number }) {
   const colors = useColors();
@@ -49,7 +66,7 @@ function ClosureRow({
 }: {
   entry: SchoolClosureEntry;
   isFirst: boolean;
-  onPress: (entry: SchoolClosureEntry) => void;
+  onPress?: (entry: SchoolClosureEntry) => void;
 }) {
   const colors = useColors();
   const { closedClasses, diseaseName, weekAgoClasses } = entry;
@@ -60,16 +77,8 @@ function ClosureRow({
     closedClasses >= 1 ? colors.level1 :
     colors.level0;
 
-  return (
-    <TouchableOpacity
-      style={[
-        styles.closureRow,
-        { backgroundColor: colors.card },
-        !isFirst && { borderTopColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth },
-      ]}
-      onPress={() => onPress(entry)}
-      activeOpacity={0.7}
-    >
+  const inner = (
+    <>
       <View style={[styles.dot, { backgroundColor: dotColor }]} />
       <View style={styles.rowInfo}>
         <Text style={[styles.diseaseName, { color: colors.foreground }]} numberOfLines={1}>
@@ -87,17 +96,114 @@ function ClosureRow({
         <Text style={[styles.classCountZero, { color: colors.mutedForeground }]}>—</Text>
       )}
       <TrendBadge current={closedClasses} prev={weekAgoClasses} />
-      <Feather name="chevron-right" size={14} color={colors.border} />
-    </TouchableOpacity>
+      {onPress && <Feather name="chevron-right" size={14} color={colors.border} />}
+    </>
+  );
+
+  const rowStyle = [
+    styles.closureRow,
+    { backgroundColor: colors.card },
+    !isFirst && { borderTopColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth },
+  ];
+
+  if (onPress) {
+    return (
+      <TouchableOpacity style={rowStyle} onPress={() => onPress(entry)} activeOpacity={0.7}>
+        {inner}
+      </TouchableOpacity>
+    );
+  }
+  return <View style={rowStyle}>{inner}</View>;
+}
+
+/** 都道府県別閉鎖クラス表示（学校等欠席者・感染症情報システムデータ） */
+function PrefClosureContent({ prefClosure }: { prefClosure: PrefClosureStatus }) {
+  const colors = useColors();
+
+  if (!prefClosure.hasData) {
+    return (
+      <View style={styles.noDataRow}>
+        <Text style={[styles.noDataText, { color: colors.mutedForeground }]}>
+          <Text
+            style={{ color: colors.primary, textDecorationLine: "underline" }}
+            onPress={() => Linking.openURL(SYSTEM_URL)}
+          >
+            学校等欠席者・感染症情報システム
+          </Text>
+          {"に就学生徒の情報がないため、データがありません"}
+        </Text>
+      </View>
+    );
+  }
+
+  const entries: SchoolClosureEntry[] = prefClosure.diseases.map((d) => {
+    const disease = DISEASES.find((dis) => dis.id === d.id);
+    return {
+      diseaseId: d.id,
+      diseaseName: disease?.name ?? FALLBACK_DISEASE_NAMES[d.id] ?? d.id,
+      closedClasses: d.closedClasses,
+      weekAgoClasses: d.weekAgoClasses,
+      weeklyHistory: [],
+    };
+  }).sort((a, b) => b.closedClasses - a.closedClasses);
+
+  const totalClosed = entries.reduce((sum, e) => sum + e.closedClasses, 0);
+
+  if (entries.length === 0 || totalClosed === 0) {
+    return (
+      <View style={styles.allClearRow}>
+        <Feather name="check-circle" size={14} color={colors.success} />
+        <Text style={[styles.allClearText, { color: colors.success }]}>
+          現在、学級閉鎖の報告はありません
+        </Text>
+      </View>
+    );
+  }
+
+  return (
+    <>
+      {entries.map((entry, i) => (
+        <ClosureRow key={entry.diseaseId} entry={entry} isFirst={i === 0} />
+      ))}
+    </>
   );
 }
 
-export function SchoolClosureCard({ district }: Props) {
+export function SchoolClosureCard({ district, prefClosure, prefName }: Props) {
   const colors = useColors();
   const { schoolClosures } = useStatusData();
   const [expanded, setExpanded] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<SchoolClosureEntry | null>(null);
 
+  // Prefecture-mode: show CLOSURE_BY_PREF data
+  if (prefClosure !== undefined) {
+    const totalClosed = prefClosure.hasData
+      ? prefClosure.diseases.reduce((sum, d) => sum + d.closedClasses, 0)
+      : 0;
+    const allClear = !prefClosure.hasData || totalClosed === 0;
+
+    return (
+      <View>
+        <View style={styles.sectionHeader}>
+          <Feather name="alert-circle" size={16} color={colors.primary} />
+          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>学級閉鎖情報</Text>
+          <View style={[styles.badge, { backgroundColor: allClear ? colors.successBg : colors.level1Bg }]}>
+            <Text style={[styles.badgeText, { color: allClear ? colors.success : colors.level2 }]}>
+              {!prefClosure.hasData ? "データなし" : allClear ? "閉鎖なし" : `計${totalClosed}クラス`}
+            </Text>
+          </View>
+          {prefName && (
+            <Text style={[styles.headerSub, { color: colors.mutedForeground }]}>{prefName}</Text>
+          )}
+        </View>
+        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <PrefClosureContent prefClosure={prefClosure} />
+        </View>
+      </View>
+    );
+  }
+
+  // Tokyo home mode: existing CLOSURE (Tokyo Tableau) data
   const active = schoolClosures.entries.filter((e) => e.closedClasses > 0);
   const inactive = schoolClosures.entries.filter((e) => e.closedClasses === 0);
   const totalClosed = active.reduce((sum, e) => sum + e.closedClasses, 0);
@@ -122,15 +228,13 @@ export function SchoolClosureCard({ district }: Props) {
       <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
         {allClear ? (
           <>
-            {/* "all clear" status row — always visible */}
             <View style={styles.allClearRow}>
               <Feather name="check-circle" size={14} color={colors.success} />
               <Text style={[styles.allClearText, { color: colors.success }]}>
                 現在、学級閉鎖の報告はありません
               </Text>
             </View>
-            {/* Expanded list of all entries (hidden by default) */}
-            {expanded && schoolClosures.entries.map((entry, i) => (
+            {expanded && schoolClosures.entries.map((entry) => (
               <ClosureRow
                 key={entry.diseaseId}
                 entry={entry}
@@ -138,7 +242,6 @@ export function SchoolClosureCard({ district }: Props) {
                 onPress={setSelectedEntry}
               />
             ))}
-            {/* Toggle to show/hide all entries */}
             <TouchableOpacity
               style={[styles.moreBtn, { borderTopColor: colors.border }]}
               onPress={() => setExpanded((v) => !v)}
@@ -281,6 +384,14 @@ const styles = StyleSheet.create({
   allClearText: {
     fontSize: 14,
     fontWeight: "500",
+  },
+  noDataRow: {
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  noDataText: {
+    fontSize: 13,
+    lineHeight: 20,
   },
   moreBtn: {
     flexDirection: "row",

@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { getLatestSnapshot } from "../../lib/dynamodb.js";
+import { getLatestSnapshot, querySnapshots } from "../../lib/dynamodb.js";
 import { logger } from "../../lib/logger.js";
 
 const router: IRouter = Router();
@@ -8,11 +8,17 @@ const router: IRouter = Router();
 router.get("/status", async (_req, res) => {
   try {
     // 最新スナップショットを並列取得
-    const [closureSnap, diseaseSnap, districtSnap, prefSnap] = await Promise.all([
+    const [closureSnap, diseaseSnap, districtSnap, prefSnap, prefClosureSnaps] = await Promise.all([
       getLatestSnapshot<Record<string, unknown>>("CLOSURE"),
       getLatestSnapshot<Record<string, unknown>>("DISEASE_STATUS"),
       getLatestSnapshot<Record<string, unknown>>("DISTRICT_STATUS"),
       getLatestSnapshot<Record<string, unknown>>("PREFECTURE_STATUS"),
+      querySnapshots<Record<string, unknown>>({
+        KeyConditionExpression: "pk = :pk",
+        ExpressionAttributeValues: { ":pk": "CLOSURE_BY_PREF" },
+        ScanIndexForward: false,
+        Limit: 2,
+      }),
     ]);
 
     const schoolClosures = closureSnap
@@ -54,12 +60,33 @@ router.get("/status", async (_req, res) => {
       })
     );
 
+    // CLOSURE_BY_PREF: latest 2 weeks for current + week-ago trend
+    const latestPrefClosurePrefs = (prefClosureSnaps[0]?.prefectures as Array<Record<string, unknown>> | undefined) ?? [];
+    const prevPrefClosurePrefs = (prefClosureSnaps[1]?.prefectures as Array<Record<string, unknown>> | undefined) ?? [];
+    const prevPrefClosureMap = new Map(prevPrefClosurePrefs.map((p) => [p.id as string, p]));
+
+    const prefClosures = latestPrefClosurePrefs.map((p) => {
+      if (!p.hasData) return { id: p.id as string, hasData: false, diseases: [] };
+      const prev = prevPrefClosureMap.get(p.id as string);
+      const prevDiseases = prev?.hasData ? ((prev.diseases as Array<Record<string, unknown>>) ?? []) : [];
+      const diseases = ((p.diseases as Array<Record<string, unknown>>) ?? []).map((d) => {
+        const prevD = prevDiseases.find((pd) => pd.id === d.id);
+        return {
+          id: d.id as string,
+          closedClasses: (d.closedClasses ?? 0) as number,
+          weekAgoClasses: ((prevD?.closedClasses) ?? 0) as number,
+        };
+      });
+      return { id: p.id as string, hasData: true, diseases };
+    });
+
     res.json({
       asOf: new Date().toISOString(),
       schoolClosures,
       diseases,
       districts,
       prefectures,
+      prefClosures,
     });
   } catch (err) {
     logger.error({ err }, "GET /v1/status エラー");

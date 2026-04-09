@@ -8,6 +8,7 @@ import {
   type District,
   type EpidemicLevel,
   type Prefecture,
+  type PrefClosureStatus,
   type PrefectureDisease,
   type SchoolClosureData,
 } from "@/constants/data";
@@ -17,6 +18,7 @@ export interface StatusData {
   schoolClosures: SchoolClosureData;
   districts: District[];
   prefectures: Prefecture[];
+  prefClosureMap: Record<string, PrefClosureStatus>;
   asOf: string | null;
   isLoading: boolean;
   isError: boolean;
@@ -31,6 +33,7 @@ export function useStatusData(): StatusData {
       schoolClosures: SCHOOL_CLOSURES,
       districts: TOKYO_DISTRICTS,
       prefectures: PREFECTURES,
+      prefClosureMap: {},
       asOf: null,
       isLoading,
       isError,
@@ -93,5 +96,10 @@ export function useStatusData(): StatusData {
     aiSummary: tokyoPref?.aiSummary || d.aiSummary,
   }));
 
-  return { diseases, schoolClosures, districts, prefectures, asOf: data.asOf, isLoading, isError };
+  const prefClosureMap: Record<string, PrefClosureStatus> = {};
+  for (const pc of (data.prefClosures ?? [])) {
+    prefClosureMap[pc.id] = pc as PrefClosureStatus;
+  }
+
+  return { diseases, schoolClosures, districts, prefectures, prefClosureMap, asOf: data.asOf, isLoading, isError };
 }

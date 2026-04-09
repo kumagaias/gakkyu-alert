@@ -34,6 +34,19 @@ export interface PrefectureDisease {
   level: EpidemicLevel;
 }
 
+/** 都道府県別・疾患別閉鎖クラス数 (学校等欠席者・感染症情報システム) */
+export interface PrefClosureDisease {
+  id: string;             // 疾患ID (例: "flu", "covid")
+  closedClasses: number;  // 今週の閉鎖クラス数
+  weekAgoClasses: number; // 先週の閉鎖クラス数
+}
+
+export interface PrefClosureStatus {
+  id: string;      // 都道府県ID
+  hasData: boolean;
+  diseases: PrefClosureDisease[];
+}
+
 export interface District {
   id: string;
   name: string;

@@ -82,6 +82,25 @@ export interface PrefectureStatus {
   diseases: PrefectureDisease[];
 }
 
+/** 都道府県別・疾患別閉鎖クラス数 */
+export interface PrefClosureDisease {
+  /** 疾患ID (例: "flu", "covid") */
+  id: string;
+  /** 今週の閉鎖クラス数 */
+  closedClasses: number;
+  /** 先週の閉鎖クラス数 */
+  weekAgoClasses: number;
+}
+
+/** 都道府県別学校閉鎖クラス数 */
+export interface PrefClosureStatus {
+  /** 都道府県ID (例: "tokyo") */
+  id: string;
+  /** 学校等欠席者・感染症情報システムに参加しているか */
+  hasData: boolean;
+  diseases: PrefClosureDisease[];
+}
+
 export interface StatusResponse {
   /** データ生成日時 (ISO8601) */
   asOf: string;
@@ -90,6 +109,8 @@ export interface StatusResponse {
   districts: DistrictStatus[];
   /** 全47都道府県の流行レベル */
   prefectures: PrefectureStatus[];
+  /** 都道府県別学校閉鎖クラス数 (学校等欠席者・感染症情報システム) */
+  prefClosures: PrefClosureStatus[];
 }
 
 export type DeviceRegistrationPlatform =

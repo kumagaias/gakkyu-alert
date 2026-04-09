@@ -8,9 +8,7 @@ import {
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useColors } from "@/hooks/useColors";
-import { DISEASES, type Disease, type District, TOKYO_DISTRICTS } from "@/constants/data";
-
-const TOKYO_IDS = new Set([...TOKYO_DISTRICTS.map((d) => d.id), "tokyo"]);
+import { DISEASES, type Disease, type District } from "@/constants/data";
 import { useStatusData } from "@/hooks/useStatusData";
 import { EpidemicLevelCard } from "@/components/EpidemicLevelCard";
 import { DiseaseRow } from "@/components/DiseaseRow";
@@ -55,7 +53,7 @@ interface Props {
 
 export function DistrictInfoPanel({ district, showFootnote = true }: Props) {
   const colors = useColors();
-  const { diseases: tokyoDiseases } = useStatusData();
+  const { diseases: tokyoDiseases, prefClosureMap } = useStatusData();
   const [selectedDisease, setSelectedDisease] = useState<Disease | null>(null);
   const [showAllDiseases, setShowAllDiseases] = useState(false);
 
@@ -81,8 +79,17 @@ export function DistrictInfoPanel({ district, showFootnote = true }: Props) {
       {/* Epidemic level card */}
       <EpidemicLevelCard level={district.level} />
 
-      {/* School closure info — Tokyo-wide, above disease trends */}
-      {TOKYO_IDS.has(district.id) && <SchoolClosureCard district={district} />}
+      {/* School closure info */}
+      {district.id === "tokyo"
+        ? <SchoolClosureCard district={district} />
+        : prefClosureMap[district.id] !== undefined && (
+            <SchoolClosureCard
+              district={district}
+              prefClosure={prefClosureMap[district.id]}
+              prefName={district.name}
+            />
+          )
+      }
 
       {/* Disease trend section */}
       <View>
