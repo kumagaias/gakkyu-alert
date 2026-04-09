@@ -210,10 +210,10 @@ resource "aws_iam_role_policy" "lambda_cron_policy" {
         ]
       },
       {
-        # collect-sentinel が AI コメント生成に Bedrock (Claude 3 Haiku) を使用
+        # collect-sentinel が AI コメント生成に Bedrock (Amazon Nova Lite) を使用
         Effect   = "Allow"
         Action   = ["bedrock:InvokeModel"]
-        Resource = "arn:aws:bedrock:${var.aws_region}::foundation-model/anthropic.claude-3-haiku-20240307-v1:0"
+        Resource = "arn:aws:bedrock:${var.aws_region}::foundation-model/amazon.nova-lite-v1:0"
       }
     ]
   })

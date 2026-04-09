@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const JAPAN_GEOJSON = JSON.stringify(require("@/assets/data/japan-geo.json"));
 import {
   ActivityIndicator,
   Platform,
@@ -50,6 +52,7 @@ function buildLevelMap(prefectures: Prefecture[]) {
 function buildMapHTML(
   levelMap: Record<string, number>,
   homePrefId: string | null,
+  geoJSONString: string,
 ): string {
   const levelColors = { 0: "#94a3b8", 1: "#eab308", 2: "#f97316", 3: "#ef4444" };
 
@@ -173,6 +176,7 @@ function buildMapHTML(
             send({ type: 'prefClick', id: prefId, name: name });
           });
 
+          var isHome = (prefId !== null && prefId === HOME_PREF);
           var homeLine = isHome ? '<div class="ward-home">★ 居住地</div>' : '';
           var lvLine = lv >= 0
             ? '<div class="ward-level" style="color:' + COLORS[lv] + ';font-weight:600">' + LNAMES[lv] + ' (Lv.' + lv + ')</div>'
@@ -197,15 +201,14 @@ function buildMapHTML(
       send({ type: 'ready', count: features.length });
     }
 
-    // Japan prefecture GeoJSON — fetched from CDN at runtime
-    fetch('https://raw.githubusercontent.com/dataofjapan/land/master/japan.geojson')
-      .then(function(r) { return r.json(); })
-      .then(processGeoJSON)
-      .catch(function(e) {
-        document.getElementById('error-box').style.display = 'block';
-        document.getElementById('error-box').textContent = '地図データ取得失敗: ' + e.message;
-        send({ type: 'error', msg: String(e) });
-      });
+    // Japan prefecture GeoJSON — bundled with the app (no network request)
+    try {
+      processGeoJSON(${geoJSONString});
+    } catch(e) {
+      document.getElementById('error-box').style.display = 'block';
+      document.getElementById('error-box').textContent = '地図データ処理エラー: ' + e.message;
+      send({ type: 'error', msg: String(e) });
+    }
   </script>
 </body>
 </html>`;
@@ -348,7 +351,7 @@ export default function MapScreen() {
 
   const levelMap = buildLevelMap(prefectures);
   const mapHTML = React.useMemo(
-    () => buildMapHTML(levelMap, homePrefId),
+    () => buildMapHTML(levelMap, homePrefId, JAPAN_GEOJSON),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [homePrefId, prefectures]
   );
