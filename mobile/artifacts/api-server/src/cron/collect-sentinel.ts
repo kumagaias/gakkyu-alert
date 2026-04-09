@@ -83,6 +83,7 @@ interface DiseaseStatus {
   twoWeeksAgoCount: number;
   weeklyHistory: number[];
   aiComment: string;
+  aiOutlook: string;
 }
 
 interface DiseaseStatusSnapshot {
@@ -224,6 +225,42 @@ async function generateDiseaseComment(
   );
 }
 
+async function generateDiseaseOutlook(
+  client: BedrockRuntimeClient,
+  diseaseId: string,
+  weeklyHistory: number[],
+  weekKey: string
+): Promise<string> {
+  // キャッシュキー: weekKey が変わると自動的にキャッシュミス
+  const cacheKey = `${diseaseId}#outlook#${weekKey}`;
+  const cached = await getSnapshotByKey<{ outlook: string }>(
+    "PREF_SUMMARY_CACHE",
+    cacheKey
+  );
+  if (cached?.outlook) return cached.outlook;
+
+  const now = new Date();
+  const month = now.getMonth() + 1;
+  const season =
+    month >= 12 || month <= 2 ? "冬（インフルエンザ流行期）" :
+    month >= 3  && month <= 5  ? "春（学年末・新学期）" :
+    month >= 6  && month <= 8  ? "夏（感染症落ち着き期）" :
+    "秋（感染症増加準備期）";
+
+  const outlook = await invokeNova(
+    client,
+    `東京都の感染症（疾患ID: ${diseaseId}）について、定点当り患者数の過去8週データに基づき、来週の見通しを保護者向けに1〜2文で予測してください。
+過去8週の定点当り患者数（古い順）: ${weeklyHistory.map((v) => v.toFixed(2)).join(", ")}
+現在: ${month}月（${season}）
+出力は日本語の1〜2文のみ。増加・減少・横ばいなどの傾向を定性的に。具体的な数値の断言は避ける。`,
+    120
+  );
+  if (outlook) {
+    await putSnapshot("PREF_SUMMARY_CACHE", cacheKey, { outlook });
+  }
+  return outlook;
+}
+
 async function generateDistrictSummary(
   client: BedrockRuntimeClient,
   districtId: string,
@@ -322,6 +359,7 @@ export const handler = async (): Promise<void> => {
       twoWeeksAgoCount: 0,
       weeklyHistory: [],
       aiComment,
+      aiOutlook: "",
     });
   }
 
@@ -330,6 +368,22 @@ export const handler = async (): Promise<void> => {
     logger.info({ weekKey }, "週次履歴 構築完了");
   } catch (err) {
     logger.warn({ err }, "週次履歴 構築失敗 — スキップ");
+  }
+
+  // 週次履歴が揃った後に来週の見通しを生成
+  for (const disease of diseases) {
+    if (disease.weeklyHistory.some((v) => v > 0)) {
+      try {
+        disease.aiOutlook = await generateDiseaseOutlook(
+          bedrock,
+          disease.id,
+          disease.weeklyHistory,
+          weekKey
+        );
+      } catch (err) {
+        logger.warn({ diseaseId: disease.id, err }, "疾患 AI 見通し生成失敗 — スキップ");
+      }
+    }
   }
 
   await putSnapshot("DISEASE_STATUS", weekKey, {

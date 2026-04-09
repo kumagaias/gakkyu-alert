@@ -41,6 +41,7 @@ router.get("/status", async (_req, res) => {
         twoWeeksAgoCount: (d.twoWeeksAgoCount ?? 0) as number,
         weeklyHistory: (d.weeklyHistory ?? []) as number[],
         aiComment: (d.aiComment ?? "") as string,
+        aiOutlook: (d.aiOutlook ?? "") as string,
       })
     );
     const districts = ((districtSnap?.districts as Record<string, unknown>[] | undefined) ?? []).map(

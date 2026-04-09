@@ -19,4 +19,6 @@ export interface DiseaseStatus {
   /** 8週分 */
   weeklyHistory: number[];
   aiComment: string;
+  /** Nova Lite による来週の見通し (optional) */
+  aiOutlook?: string;
 }

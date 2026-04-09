@@ -309,6 +309,22 @@ export function SchoolClosureModal({ entry, district, onClose }: Props) {
             </Text>
           </View>
 
+          {/* AI outlook */}
+          {!!entry.aiOutlook && (
+            <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <View style={styles.sectionHeader}>
+                <Feather name="cpu" size={14} color={colors.mutedForeground} />
+                <Text style={[styles.sectionTitle, { color: colors.mutedForeground }]}>来週の見通し（AI）</Text>
+              </View>
+              <Text style={[styles.summaryText, { color: colors.foreground }]}>
+                {entry.aiOutlook}
+              </Text>
+              <Text style={[styles.aiDisclaimer, { color: colors.mutedForeground }]}>
+                ※ Amazon Nova Lite による自動生成です。参考情報としてご利用ください。
+              </Text>
+            </View>
+          )}
+
           {/* Links */}
           <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <View style={styles.sectionHeader}>
@@ -501,6 +517,11 @@ const styles = StyleSheet.create({
   summaryText: {
     fontSize: 14,
     lineHeight: 22,
+  },
+  aiDisclaimer: {
+    fontSize: 11,
+    lineHeight: 16,
+    marginTop: 2,
   },
 
   /* Links */

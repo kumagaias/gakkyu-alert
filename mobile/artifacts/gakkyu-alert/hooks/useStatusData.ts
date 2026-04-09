@@ -52,6 +52,7 @@ export function useStatusData(): StatusData {
       twoWeeksAgoCount: api.twoWeeksAgoCount,
       weeklyHistory: api.weeklyHistory,
       aiComment: api.aiComment || d.aiComment,
+      aiOutlook: api.aiOutlook || undefined,
     };
   });
 
@@ -65,6 +66,7 @@ export function useStatusData(): StatusData {
       closedClasses: e.closedClasses,
       weekAgoClasses: e.weekAgoClasses,
       weeklyHistory: e.weeklyHistory,
+      aiOutlook: e.aiOutlook || undefined,
     })),
   };
 

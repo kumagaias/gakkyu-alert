@@ -14,4 +14,6 @@ export interface ClosureEntry {
   /** 8週分 oldest→newest */
   weeklyHistory: number[];
   sourceUpdatedAt?: string | null;
+  /** Nova Lite による来週の見通し (optional) */
+  aiOutlook?: string;
 }

@@ -26,6 +26,12 @@ export const getStatusResponseDiseasesItemCurrentLevelMax = 3;
 export const getStatusResponseDistrictsItemLevelMin = 0;
 export const getStatusResponseDistrictsItemLevelMax = 3;
 
+export const getStatusResponsePrefecturesItemLevelMin = 0;
+export const getStatusResponsePrefecturesItemLevelMax = 3;
+
+export const getStatusResponsePrefecturesItemDiseasesItemLevelMin = 0;
+export const getStatusResponsePrefecturesItemDiseasesItemLevelMax = 3;
+
 export const GetStatusResponse = zod.object({
   asOf: zod.string().describe("データ生成日時 (ISO8601)"),
   schoolClosures: zod.object({
@@ -40,6 +46,10 @@ export const GetStatusResponse = zod.object({
         weekAgoClasses: zod.number(),
         weeklyHistory: zod.array(zod.number()).describe("8週分 oldest→newest"),
         sourceUpdatedAt: zod.string().nullish(),
+        aiOutlook: zod
+          .string()
+          .optional()
+          .describe("Nova Lite による来週の見通し (optional)"),
       }),
     ),
   }),
@@ -55,6 +65,10 @@ export const GetStatusResponse = zod.object({
       twoWeeksAgoCount: zod.number(),
       weeklyHistory: zod.array(zod.number()).describe("8週分"),
       aiComment: zod.string(),
+      aiOutlook: zod
+        .string()
+        .optional()
+        .describe("Nova Lite による来週の見通し (optional)"),
     }),
   ),
   districts: zod.array(
@@ -67,6 +81,57 @@ export const GetStatusResponse = zod.object({
       aiSummary: zod.string(),
     }),
   ),
+  prefectures: zod
+    .array(
+      zod
+        .object({
+          id: zod.string().describe("都道府県ID (例: tokyo)"),
+          level: zod
+            .number()
+            .min(getStatusResponsePrefecturesItemLevelMin)
+            .max(getStatusResponsePrefecturesItemLevelMax),
+          aiSummary: zod.string(),
+          diseases: zod
+            .array(
+              zod
+                .object({
+                  id: zod.string().describe("疾患ID (例: flu-a, covid)"),
+                  perSentinel: zod.number().describe("定点あたり患者数"),
+                  level: zod
+                    .number()
+                    .min(getStatusResponsePrefecturesItemDiseasesItemLevelMin)
+                    .max(getStatusResponsePrefecturesItemDiseasesItemLevelMax),
+                })
+                .describe("都道府県別疾患内訳"),
+            )
+            .describe("疾患別内訳"),
+        })
+        .describe(
+          '都道府県レベルの流行状況。id は英字 (例: \"tokyo\", \"osaka\")。\n将来的に市区町村レベルへ分解可能な構造。\n',
+        ),
+    )
+    .describe("全47都道府県の流行レベル"),
+  prefClosures: zod
+    .array(
+      zod
+        .object({
+          id: zod.string().describe("都道府県ID (例: tokyo)"),
+          hasData: zod
+            .boolean()
+            .describe("学校等欠席者・感染症情報システムに参加しているか"),
+          diseases: zod.array(
+            zod
+              .object({
+                id: zod.string().describe("疾患ID (例: flu, covid)"),
+                closedClasses: zod.number().describe("今週の閉鎖クラス数"),
+                weekAgoClasses: zod.number().describe("先週の閉鎖クラス数"),
+              })
+              .describe("都道府県別・疾患別閉鎖クラス数"),
+          ),
+        })
+        .describe("都道府県別学校閉鎖クラス数"),
+    )
+    .describe("都道府県別学校閉鎖クラス数 (学校等欠席者・感染症情報システム)"),
 });
 
 /**

@@ -17,6 +17,8 @@ export interface ClosureEntry {
   /** 8週分 oldest→newest */
   weeklyHistory: number[];
   sourceUpdatedAt?: string | null;
+  /** Nova Lite による来週の見通し (optional) */
+  aiOutlook?: string;
 }
 
 export interface SchoolClosuresData {
@@ -40,6 +42,8 @@ export interface DiseaseStatus {
   /** 8週分 */
   weeklyHistory: number[];
   aiComment: string;
+  /** Nova Lite による来週の見通し (optional) */
+  aiOutlook?: string;
 }
 
 export interface DistrictStatus {
@@ -52,9 +56,11 @@ export interface DistrictStatus {
   aiSummary: string;
 }
 
-/** 都道府県別疾患内訳 */
+/**
+ * 都道府県別疾患内訳
+ */
 export interface PrefectureDisease {
-  /** 疾患ID (例: "flu-a", "covid") */
+  /** 疾患ID (例: flu-a, covid) */
   id: string;
   /** 定点あたり患者数 */
   perSentinel: number;
@@ -67,10 +73,11 @@ export interface PrefectureDisease {
 
 /**
  * 都道府県レベルの流行状況。id は英字 (例: "tokyo", "osaka")。
- * 将来的に市区町村レベルへ分解可能な構造。
+将来的に市区町村レベルへ分解可能な構造。
+
  */
 export interface PrefectureStatus {
-  /** 都道府県ID (例: "tokyo") */
+  /** 都道府県ID (例: tokyo) */
   id: string;
   /**
    * @minimum 0
@@ -82,9 +89,11 @@ export interface PrefectureStatus {
   diseases: PrefectureDisease[];
 }
 
-/** 都道府県別・疾患別閉鎖クラス数 */
+/**
+ * 都道府県別・疾患別閉鎖クラス数
+ */
 export interface PrefClosureDisease {
-  /** 疾患ID (例: "flu", "covid") */
+  /** 疾患ID (例: flu, covid) */
   id: string;
   /** 今週の閉鎖クラス数 */
   closedClasses: number;
@@ -92,9 +101,11 @@ export interface PrefClosureDisease {
   weekAgoClasses: number;
 }
 
-/** 都道府県別学校閉鎖クラス数 */
+/**
+ * 都道府県別学校閉鎖クラス数
+ */
 export interface PrefClosureStatus {
-  /** 都道府県ID (例: "tokyo") */
+  /** 都道府県ID (例: tokyo) */
   id: string;
   /** 学校等欠席者・感染症情報システムに参加しているか */
   hasData: boolean;

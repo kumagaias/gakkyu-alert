@@ -7,9 +7,11 @@
  */
 import type { PrefClosureDisease } from "./prefClosureDisease";
 
-/** 都道府県別学校閉鎖クラス数 */
+/**
+ * 都道府県別学校閉鎖クラス数
+ */
 export interface PrefClosureStatus {
-  /** 都道府県ID (例: "tokyo") */
+  /** 都道府県ID (例: tokyo) */
   id: string;
   /** 学校等欠席者・感染症情報システムに参加しているか */
   hasData: boolean;

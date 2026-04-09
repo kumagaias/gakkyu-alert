@@ -16,6 +16,7 @@ export * from "./districtStatus";
 export * from "./healthStatus";
 export * from "./prefClosureDisease";
 export * from "./prefClosureStatus";
+export * from "./prefectureDisease";
 export * from "./prefectureStatus";
 export * from "./schoolClosuresData";
 export * from "./statusResponse";

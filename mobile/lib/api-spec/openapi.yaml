@@ -160,6 +160,9 @@ components:
         sourceUpdatedAt:
           type: string
           nullable: true
+        aiOutlook:
+          type: string
+          description: Nova Lite による来週の見通し (optional)
       required:
         - diseaseId
         - diseaseName
@@ -189,6 +192,9 @@ components:
           description: 8週分
         aiComment:
           type: string
+        aiOutlook:
+          type: string
+          description: Nova Lite による来週の見通し (optional)
       required:
         - id
         - currentLevel
@@ -220,7 +226,7 @@ components:
       properties:
         id:
           type: string
-          description: 疾患ID (例: "flu-a", "covid")
+          description: "疾患ID (例: flu-a, covid)"
         perSentinel:
           type: number
           description: 定点あたり患者数
@@ -241,7 +247,7 @@ components:
       properties:
         id:
           type: string
-          description: 都道府県ID (例: "tokyo")
+          description: "都道府県ID (例: tokyo)"
         level:
           type: integer
           minimum: 0
@@ -265,7 +271,7 @@ components:
       properties:
         id:
           type: string
-          description: 疾患ID (例: "flu", "covid")
+          description: "疾患ID (例: flu, covid)"
         closedClasses:
           type: integer
           description: 今週の閉鎖クラス数
@@ -283,7 +289,7 @@ components:
       properties:
         id:
           type: string
-          description: 都道府県ID (例: "tokyo")
+          description: "都道府県ID (例: tokyo)"
         hasData:
           type: boolean
           description: 学校等欠席者・感染症情報システムに参加しているか

@@ -24,6 +24,7 @@ export interface Disease {
   schoolRules: SchoolRules;
   doctorClearance: boolean;
   aiComment: string;
+  aiOutlook?: string;
 }
 
 /** 都道府県別疾患内訳 (API から取得) */
@@ -120,6 +121,7 @@ export interface SchoolClosureEntry {
   closedClasses: number;
   weekAgoClasses: number;
   weeklyHistory: number[]; // 8 weeks oldest→newest, last = current
+  aiOutlook?: string;
 }
 
 export interface SchoolClosureData {

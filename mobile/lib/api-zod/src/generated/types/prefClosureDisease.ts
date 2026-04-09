@@ -6,9 +6,11 @@
  * OpenAPI spec version: 0.1.0
  */
 
-/** 都道府県別・疾患別閉鎖クラス数 */
+/**
+ * 都道府県別・疾患別閉鎖クラス数
+ */
 export interface PrefClosureDisease {
-  /** 疾患ID (例: "flu", "covid") */
+  /** 疾患ID (例: flu, covid) */
   id: string;
   /** 今週の閉鎖クラス数 */
   closedClasses: number;
