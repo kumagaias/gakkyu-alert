@@ -157,8 +157,28 @@ export async function resolveDistrictByZip(zip: string): Promise<ZipResult> {
   }
 }
 
-// 都道府県名 → Prefecture を解決
+// 都道府県名（日本語 or 英語）→ Prefecture を解決
+const PREF_EN_MAP: Record<string, string> = {
+  hokkaido: "hokkaido", aomori: "aomori", iwate: "iwate", miyagi: "miyagi",
+  akita: "akita", yamagata: "yamagata", fukushima: "fukushima", ibaraki: "ibaraki",
+  tochigi: "tochigi", gunma: "gunma", saitama: "saitama", chiba: "chiba",
+  tokyo: "tokyo", kanagawa: "kanagawa", niigata: "niigata", toyama: "toyama",
+  ishikawa: "ishikawa", fukui: "fukui", yamanashi: "yamanashi", nagano: "nagano",
+  gifu: "gifu", shizuoka: "shizuoka", aichi: "aichi", mie: "mie",
+  shiga: "shiga", kyoto: "kyoto", osaka: "osaka", hyogo: "hyogo",
+  nara: "nara", wakayama: "wakayama", tottori: "tottori", shimane: "shimane",
+  okayama: "okayama", hiroshima: "hiroshima", yamaguchi: "yamaguchi",
+  tokushima: "tokushima", kagawa: "kagawa", ehime: "ehime", kochi: "kochi",
+  fukuoka: "fukuoka", saga: "saga", nagasaki: "nagasaki", kumamoto: "kumamoto",
+  oita: "oita", miyazaki: "miyazaki", kagoshima: "kagoshima", okinawa: "okinawa",
+};
+
 export function findPrefectureByName(name: string): Prefecture | null {
+  const lower = name.toLowerCase().replace(/\s+/g, "");
+  // 英語IDで直接マッチ
+  const byId = PREF_EN_MAP[lower];
+  if (byId) return PREFECTURES.find((p) => p.id === byId) ?? null;
+  // 日本語名でマッチ
   return PREFECTURES.find((p) => name.includes(p.name) || p.name.includes(name)) ?? null;
 }
 
@@ -180,8 +200,13 @@ export async function resolvePrefectureByGps(): Promise<GpsPrefResult> {
       latitude: loc.coords.latitude,
       longitude: loc.coords.longitude,
     });
-    if (!geo?.region) return { type: "not_found" };
-    const pref = findPrefectureByName(geo.region);
+    // region (iOS: "東京都" / web: "Tokyo"), subregion なども試す
+    const candidates = [geo?.region, geo?.subregion, geo?.city].filter(Boolean) as string[];
+    let pref: Prefecture | null = null;
+    for (const c of candidates) {
+      pref = findPrefectureByName(c);
+      if (pref) break;
+    }
     if (!pref) return { type: "not_found" };
     return { type: "success", prefecture: pref };
   } catch {

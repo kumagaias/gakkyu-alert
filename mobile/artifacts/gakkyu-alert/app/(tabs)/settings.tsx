@@ -249,6 +249,7 @@ export default function SettingsScreen() {
               </View>
             );
           })}
+          {/* TODO: 複数エリア追加機能（勤務先など）— 将来実装
           <TouchableOpacity
             style={[styles.addRow, { borderTopColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth }]}
             onPress={() => {
@@ -259,6 +260,7 @@ export default function SettingsScreen() {
             <Feather name="plus" size={16} color={colors.primary} />
             <Text style={[styles.addText, { color: colors.primary }]}>エリアを追加（勤務先など）</Text>
           </TouchableOpacity>
+          */}
         </View>
 
         {/* Notifications */}
