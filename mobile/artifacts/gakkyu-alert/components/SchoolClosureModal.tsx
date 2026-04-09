@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Linking,
   Modal,
@@ -6,8 +6,20 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from "react-native";
+import Svg, {
+  Circle,
+  Defs,
+  G,
+  LinearGradient,
+  Path,
+  Polyline,
+  Line as SvgLine,
+  Stop,
+  Text as SvgText,
+} from "react-native-svg";
 import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
@@ -19,7 +31,147 @@ interface Props {
   onClose: () => void;
 }
 
-const WEEK_LABELS = ["8W前", "7W前", "6W前", "5W前", "4W前", "3W前", "先週", "今週"];
+// ── Date label helpers ───────────────────────────────────────────────────────
+
+function computeDateLabels(lastUpdated: string, count: number): string[] {
+  const [y, m, d] = lastUpdated.split("/").map(Number);
+  const base = new Date(y, m - 1, d);
+  return Array.from({ length: count }, (_, i) => {
+    const daysAgo = (count - 1 - i) * 7;
+    const dt = new Date(base.getTime() - daysAgo * 86_400_000);
+    return `${dt.getMonth() + 1}/${dt.getDate()}`;
+  });
+}
+
+// ── Line chart ───────────────────────────────────────────────────────────────
+
+function TrendLineChart({ history, lastUpdated }: { history: number[]; lastUpdated: string }) {
+  const colors = useColors();
+  const { width: screenWidth } = useWindowDimensions();
+
+  // section padding: content(20) + section(14) + border(1) each side = 70 total
+  const [chartWidth, setChartWidth] = useState(screenWidth - 70);
+
+  const PAD_TOP = 22;
+  const PAD_BOT = 38;
+  const PAD_H   = 4;
+  const HEIGHT  = 130;
+
+  const n      = history.length;
+  const maxVal = Math.max(...history, 1);
+  const labels = computeDateLabels(lastUpdated, n);
+  const plotW  = chartWidth - PAD_H * 2;
+  const plotH  = HEIGHT - PAD_TOP - PAD_BOT;
+
+  const pts = history.map((val, i) => ({
+    x:         PAD_H + (i / (n - 1)) * plotW,
+    y:         PAD_TOP + (1 - val / maxVal) * plotH,
+    val,
+    label:     labels[i],
+    isCurrent: i === n - 1,
+    isPrev:    i === n - 2,
+  }));
+
+  const linePts = pts.map((p) => `${p.x},${p.y}`).join(" ");
+  const fillPath = [
+    `M ${pts[0].x} ${PAD_TOP + plotH}`,
+    ...pts.map((p) => `L ${p.x} ${p.y}`),
+    `L ${pts[n - 1].x} ${PAD_TOP + plotH}`,
+    "Z",
+  ].join(" ");
+
+  // 3 horizontal grid lines: top / mid / bottom
+  const gridYs = [0, 0.5, 1].map((f) => PAD_TOP + (1 - f) * plotH);
+
+  return (
+    <View
+      onLayout={(e) => setChartWidth(e.nativeEvent.layout.width)}
+      style={{ marginTop: 4 }}
+    >
+      <Svg width={chartWidth} height={HEIGHT}>
+        <Defs>
+          <LinearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0" stopColor={colors.primary} stopOpacity="0.18" />
+            <Stop offset="1" stopColor={colors.primary} stopOpacity="0.02" />
+          </LinearGradient>
+        </Defs>
+
+        {/* Grid lines */}
+        {gridYs.map((y, i) => (
+          <SvgLine
+            key={i}
+            x1={PAD_H} y1={y} x2={chartWidth - PAD_H} y2={y}
+            stroke={colors.border}
+            strokeWidth={0.8}
+            strokeDasharray={i === 2 ? undefined : "3,3"}
+          />
+        ))}
+
+        {/* Area fill */}
+        <Path d={fillPath} fill="url(#areaGrad)" />
+
+        {/* Line */}
+        <Polyline
+          points={linePts}
+          fill="none"
+          stroke={colors.primary}
+          strokeWidth={2.5}
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+
+        {/* Per-point: value label, dot, date label */}
+        {pts.map((p, i) => (
+          <G key={i}>
+            {/* Value above dot */}
+            <SvgText
+              x={p.x} y={p.y - 8}
+              textAnchor="middle"
+              fontSize={9}
+              fontWeight={p.isCurrent ? "700" : "400"}
+              fill={p.isCurrent ? colors.primary : colors.mutedForeground}
+            >
+              {p.val}
+            </SvgText>
+
+            {/* Dot */}
+            <Circle
+              cx={p.x} cy={p.y}
+              r={p.isCurrent ? 5.5 : 3.5}
+              fill={p.isCurrent ? colors.primary : colors.background}
+              stroke={colors.primary}
+              strokeWidth={2}
+            />
+
+            {/* Date (M/D) */}
+            <SvgText
+              x={p.x} y={HEIGHT - PAD_BOT + 14}
+              textAnchor="middle"
+              fontSize={9}
+              fontWeight={p.isCurrent ? "700" : "400"}
+              fill={p.isCurrent ? colors.primary : colors.mutedForeground}
+            >
+              {p.label}
+            </SvgText>
+
+            {/* 今週 / 先週 tag */}
+            {(p.isCurrent || p.isPrev) && (
+              <SvgText
+                x={p.x} y={HEIGHT - PAD_BOT + 26}
+                textAnchor="middle"
+                fontSize={8}
+                fontWeight="700"
+                fill={p.isCurrent ? colors.primary : colors.mutedForeground}
+              >
+                {p.isCurrent ? "今週" : "先週"}
+              </SvgText>
+            )}
+          </G>
+        ))}
+      </Svg>
+    </View>
+  );
+}
 
 function getSummaryText(entry: SchoolClosureEntry): string {
   const { diseaseName, closedClasses, weekAgoClasses } = entry;
@@ -40,49 +192,6 @@ function getSummaryText(entry: SchoolClosureEntry): string {
   return `東京都全体で${diseaseName}が${closedClasses}クラス閉鎖中です。先週から横ばいの状況が続いています。登校前に体調確認を行ってください。`;
 }
 
-function MiniBarChart({ history }: { history: number[] }) {
-  const colors = useColors();
-  const maxVal = Math.max(...history, 1);
-
-  return (
-    <View style={styles.chartWrap}>
-      {history.map((val, i) => {
-        const isCurrent = i === history.length - 1;
-        const barColor = isCurrent ? colors.primary : colors.border;
-        const heightPct = maxVal > 0 ? (val / maxVal) * 100 : 0;
-
-        return (
-          <View key={i} style={styles.barCol}>
-            <View style={styles.barTrack}>
-              <View
-                style={[
-                  styles.bar,
-                  {
-                    height: `${Math.max(heightPct, val > 0 ? 8 : 0)}%`,
-                    backgroundColor: val > 0 ? barColor : colors.muted,
-                    opacity: isCurrent ? 1 : 0.6,
-                  },
-                ]}
-              />
-            </View>
-            <Text style={[styles.barVal, { color: isCurrent ? colors.primary : colors.mutedForeground }]}>
-              {val}
-            </Text>
-            {i === history.length - 1 && (
-              <Text style={[styles.barLabel, { color: colors.primary }]}>今</Text>
-            )}
-            {i === history.length - 2 && (
-              <Text style={[styles.barLabel, { color: colors.mutedForeground }]}>先</Text>
-            )}
-            {i !== history.length - 1 && i !== history.length - 2 && (
-              <Text style={[styles.barLabel, { color: colors.mutedForeground }]} />
-            )}
-          </View>
-        );
-      })}
-    </View>
-  );
-}
 
 export function SchoolClosureModal({ entry, district, onClose }: Props) {
   const colors = useColors();
@@ -175,18 +284,18 @@ export function SchoolClosureModal({ entry, district, onClose }: Props) {
             </View>
           </View>
 
-          {/* Mini bar chart — 8 week trend */}
+          {/* Line chart — 8 week trend */}
           <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <View style={styles.sectionHeader}>
-              <Feather name="bar-chart-2" size={14} color={colors.mutedForeground} />
+              <Feather name="trending-up" size={14} color={colors.mutedForeground} />
               <Text style={[styles.sectionTitle, { color: colors.mutedForeground }]}>
                 過去8週間のトレンド（東京都全体）
               </Text>
             </View>
-            <MiniBarChart history={entry.weeklyHistory} />
-            <Text style={[styles.chartNote, { color: colors.mutedForeground }]}>
-              「今」= 今週 / 「先」= 先週
-            </Text>
+            <TrendLineChart
+              history={entry.weeklyHistory}
+              lastUpdated={SCHOOL_CLOSURES.lastUpdated}
+            />
           </View>
 
           {/* Summary text */}
@@ -368,44 +477,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 3,
-  },
-
-  /* Chart */
-  chartWrap: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    gap: 4,
-    height: 80,
-    paddingHorizontal: 4,
-  },
-  barCol: {
-    flex: 1,
-    alignItems: "center",
-    height: "100%",
-    gap: 3,
-  },
-  barTrack: {
-    flex: 1,
-    width: "100%",
-    justifyContent: "flex-end",
-  },
-  bar: {
-    width: "100%",
-    borderRadius: 3,
-    minHeight: 3,
-  },
-  barVal: {
-    fontSize: 9,
-    fontWeight: "600",
-  },
-  barLabel: {
-    fontSize: 9,
-    fontWeight: "700",
-  },
-  chartNote: {
-    fontSize: 10,
-    marginTop: 6,
-    textAlign: "right",
   },
 
   /* Section */
