@@ -125,6 +125,12 @@ function isoWeekKey(year: number, week: number): string {
 }
 
 // ---------------------------------------------------------------------------
+// ユーティリティ
+// ---------------------------------------------------------------------------
+
+const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
+
+// ---------------------------------------------------------------------------
 // Amazon Nova Lite 呼び出し
 // ---------------------------------------------------------------------------
 
@@ -145,6 +151,7 @@ async function invokeNova(
     })
   );
   const body = JSON.parse(new TextDecoder().decode(res.body)) as NovaResponseBody;
+  await sleep(300);
   return body.output?.message?.content?.[0]?.text?.trim() ?? "";
 }
 
