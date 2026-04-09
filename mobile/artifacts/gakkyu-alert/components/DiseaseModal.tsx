@@ -147,15 +147,6 @@ export function DiseaseModal({ disease, onClose }: Props) {
             </View>
           </View>
 
-          {/* AI comment */}
-          <View style={[styles.section, { backgroundColor: colors.accent, borderColor: colors.accentForeground + "20" }]}>
-            <View style={styles.rowWithIcon}>
-              <Feather name="zap" size={14} color={colors.primary} />
-              <Text style={[styles.sectionTitle, { color: colors.primary }]}>AI コメント</Text>
-            </View>
-            <Text style={[styles.bodyText, { color: colors.foreground }]}>{disease.aiComment}</Text>
-          </View>
-
           {/* School rules — split by institution */}
           <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <View style={styles.rowWithIcon}>
