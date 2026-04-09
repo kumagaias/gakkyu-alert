@@ -376,22 +376,39 @@ export const handler = async (): Promise<void> => {
 
   // ── 3. PREFECTURE_STATUS (全47都道府県) ─────────────────────────────────────
 
-  // 都道府県 × 疾患 の perSentinel を集計
-  type PrefDisease = { flu: number; covid: number };
+  // 都道府県 × 疾患 の perSentinel を集計 (全疾患)
+  type PrefDisease = { flu: number; covid: number; all: Map<string, number> };
   const prefMap = new Map<string, PrefDisease>();
 
   for (const rec of idwrRecords) {
     if (!rec.prefectureId) continue;
-    const entry = prefMap.get(rec.prefectureId) ?? { flu: 0, covid: 0 };
+    if (!prefMap.has(rec.prefectureId)) {
+      prefMap.set(rec.prefectureId, { flu: 0, covid: 0, all: new Map() });
+    }
+    const entry = prefMap.get(rec.prefectureId)!;
     if (rec.diseaseId === "flu-a") entry.flu   = rec.perSentinel;
     if (rec.diseaseId === "covid") entry.covid = rec.perSentinel;
-    prefMap.set(rec.prefectureId, entry);
+    // 最初の行を採用 (重複疾患はスキップ)
+    if (!entry.all.has(rec.diseaseId)) {
+      entry.all.set(rec.diseaseId, rec.perSentinel);
+    }
   }
 
-  const prefectures: Array<{ id: string; level: number; aiSummary: string }> = [];
+  const prefectures: Array<{
+    id: string;
+    level: number;
+    aiSummary: string;
+    diseases: Array<{ id: string; perSentinel: number; level: number }>;
+  }> = [];
 
-  for (const [prefId, { flu, covid }] of prefMap) {
+  for (const [prefId, { flu, covid, all }] of prefMap) {
     const level = prefLevel(flu, covid);
+
+    const diseaseBreakdown = Array.from(all.entries()).map(([diseaseId, perSentinel]) => ({
+      id: diseaseId,
+      perSentinel,
+      level: calcLevel(perSentinel, diseaseId === "covid" ? COVID_THRESHOLDS : FLU_THRESHOLDS),
+    }));
 
     let aiSummary = "";
     try {
@@ -399,7 +416,7 @@ export const handler = async (): Promise<void> => {
     } catch (err) {
       logger.warn({ prefId, err }, "都道府県 AI サマリー生成失敗 — スキップ");
     }
-    prefectures.push({ id: prefId, level, aiSummary });
+    prefectures.push({ id: prefId, level, aiSummary, diseases: diseaseBreakdown });
   }
 
   await putSnapshot("PREFECTURE_STATUS", weekKey, {

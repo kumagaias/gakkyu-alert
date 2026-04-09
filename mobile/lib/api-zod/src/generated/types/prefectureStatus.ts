@@ -6,6 +6,19 @@
  * OpenAPI spec version: 0.1.0
  */
 
+/** 都道府県別疾患内訳 */
+export interface PrefectureDisease {
+  /** 疾患ID (例: "flu-a", "covid") */
+  id: string;
+  /** 定点あたり患者数 */
+  perSentinel: number;
+  /**
+   * @minimum 0
+   * @maximum 3
+   */
+  level: number;
+}
+
 /**
  * 都道府県レベルの流行状況。id は英字 (例: "tokyo", "osaka")。
  * 将来的に市区町村レベルへ分解可能な構造。
@@ -19,4 +32,6 @@ export interface PrefectureStatus {
    */
   level: number;
   aiSummary: string;
+  /** 疾患別内訳 */
+  diseases: PrefectureDisease[];
 }

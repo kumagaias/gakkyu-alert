@@ -27,11 +27,19 @@ export interface Disease {
   aiComment: string;
 }
 
+/** 都道府県別疾患内訳 (API から取得) */
+export interface PrefectureDisease {
+  id: string;           // 疾患ID (例: "flu-a")
+  perSentinel: number;  // 定点あたり患者数
+  level: EpidemicLevel;
+}
+
 export interface District {
   id: string;
   name: string;
   level: EpidemicLevel;
   aiSummary: string;
+  diseases?: PrefectureDisease[];
 }
 
 /** 都道府県 — 将来的に市区町村への分解を見越した構造 */
@@ -41,6 +49,7 @@ export interface Prefecture {
   /** 将来: municipalities?: Municipality[] */
   level: EpidemicLevel;
   aiSummary: string;
+  diseases?: PrefectureDisease[];
 }
 
 export const PREFECTURES: Prefecture[] = [

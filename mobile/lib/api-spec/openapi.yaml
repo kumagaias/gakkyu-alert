@@ -208,6 +208,25 @@ components:
         - level
         - aiSummary
 
+    PrefectureDisease:
+      type: object
+      description: 都道府県別疾患内訳
+      properties:
+        id:
+          type: string
+          description: 疾患ID (例: "flu-a", "covid")
+        perSentinel:
+          type: number
+          description: 定点あたり患者数
+        level:
+          type: integer
+          minimum: 0
+          maximum: 3
+      required:
+        - id
+        - perSentinel
+        - level
+
     PrefectureStatus:
       type: object
       description: |
@@ -223,10 +242,16 @@ components:
           maximum: 3
         aiSummary:
           type: string
+        diseases:
+          type: array
+          description: 疾患別内訳
+          items:
+            $ref: "#/components/schemas/PrefectureDisease"
       required:
         - id
         - level
         - aiSummary
+        - diseases
 
     # ── Devices ────────────────────────────────────────────
     DeviceRegistration:

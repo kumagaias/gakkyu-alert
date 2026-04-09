@@ -8,6 +8,7 @@ import {
   type District,
   type EpidemicLevel,
   type Prefecture,
+  type PrefectureDisease,
   type SchoolClosureData,
 } from "@/constants/data";
 
@@ -78,6 +79,7 @@ export function useStatusData(): StatusData {
       ...p,
       level: api.level as EpidemicLevel,
       aiSummary: api.aiSummary || p.aiSummary,
+      diseases: (api.diseases ?? []) as PrefectureDisease[],
     };
   });
 

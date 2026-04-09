@@ -8,7 +8,7 @@ import {
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useColors } from "@/hooks/useColors";
-import { type Disease, type District, TOKYO_DISTRICTS } from "@/constants/data";
+import { DISEASES, type Disease, type District, TOKYO_DISTRICTS } from "@/constants/data";
 
 const TOKYO_IDS = new Set([...TOKYO_DISTRICTS.map((d) => d.id), "tokyo"]);
 import { useStatusData } from "@/hooks/useStatusData";
@@ -55,11 +55,20 @@ interface Props {
 
 export function DistrictInfoPanel({ district, showFootnote = true }: Props) {
   const colors = useColors();
-  const { diseases: DISEASES } = useStatusData();
+  const { diseases: tokyoDiseases } = useStatusData();
   const [selectedDisease, setSelectedDisease] = useState<Disease | null>(null);
   const [showAllDiseases, setShowAllDiseases] = useState(false);
 
-  const sortedDiseases = [...DISEASES].sort((a, b) => {
+  // 都道府県別疾患データがあればそちらを使い、静的 DISEASES とマージする
+  const diseases: Disease[] = district.diseases && district.diseases.length > 0
+    ? DISEASES.map((d) => {
+        const pd = district.diseases!.find((dd) => dd.id === d.id);
+        if (!pd) return { ...d, currentLevel: 0 as const, currentCount: 0, lastWeekCount: 0, twoWeeksAgoCount: 0, weeklyHistory: [], aiComment: "" };
+        return { ...d, currentLevel: pd.level as 0 | 1 | 2 | 3, currentCount: pd.perSentinel, lastWeekCount: 0, twoWeeksAgoCount: 0, weeklyHistory: [], aiComment: "" };
+      })
+    : tokyoDiseases;
+
+  const sortedDiseases = [...diseases].sort((a, b) => {
     if (b.currentLevel !== a.currentLevel) return b.currentLevel - a.currentLevel;
     return b.currentCount - a.currentCount;
   });
