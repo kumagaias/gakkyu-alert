@@ -134,12 +134,22 @@ function parseCsv(csvPath: string): WeekData {
 
 const ALL_PREF_IDS = Object.values(PREF_CODE_TO_ID);
 
+// 学校等欠席者・感染症情報システム 非参加都道府県（CSVに一切登場しない）
+const NON_PARTICIPATING_PREF_IDS = new Set([
+  "hokkaido", "kanagawa", "okayama", "tokushima", "yamagata",
+]);
+
 async function saveWeek(weekKey: string, prefMap: Map<string, Map<string, number>>): Promise<void> {
   const participatingIds = new Set(prefMap.keys());
 
   const prefectures = ALL_PREF_IDS.map((prefId) => {
-    if (!participatingIds.has(prefId)) {
+    // システム非参加 → hasData: false
+    if (NON_PARTICIPATING_PREF_IDS.has(prefId)) {
       return { id: prefId, hasData: false };
+    }
+    // 参加しているが今週報告なし → hasData: true, diseases: [] (= 0件)
+    if (!participatingIds.has(prefId)) {
+      return { id: prefId, hasData: true, diseases: [] };
     }
     const diseaseMap = prefMap.get(prefId)!;
     const diseases = Array.from(diseaseMap.entries()).map(([id, closedClasses]) => ({

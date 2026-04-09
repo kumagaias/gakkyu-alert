@@ -1,4 +1,5 @@
 import * as Location from "expo-location";
+import { Platform } from "react-native";
 import { TOKYO_DISTRICTS, PREFECTURES, type District, type Prefecture } from "@/constants/data";
 import geoData from "@/assets/data/tokyo.json";
 
@@ -196,11 +197,24 @@ export async function resolvePrefectureByGps(): Promise<GpsPrefResult> {
     const loc = await Location.getCurrentPositionAsync({
       accuracy: Location.Accuracy.Balanced,
     });
-    const [geo] = await Location.reverseGeocodeAsync({
-      latitude: loc.coords.latitude,
-      longitude: loc.coords.longitude,
-    });
-    // region (iOS: "東京都" / web: "Tokyo"), subregion なども試す
+    const { latitude, longitude } = loc.coords;
+
+    // Web環境では reverseGeocodeAsync が動作しないため Nominatim を使用
+    if (Platform.OS === "web") {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&accept-language=ja`,
+        { headers: { "User-Agent": "gakkyu-alert/1.0" } }
+      );
+      const data = await res.json();
+      const prefName: string = data?.address?.state ?? "";
+      if (!prefName) return { type: "not_found" };
+      const pref = findPrefectureByName(prefName);
+      if (!pref) return { type: "not_found" };
+      return { type: "success", prefecture: pref };
+    }
+
+    const [geo] = await Location.reverseGeocodeAsync({ latitude, longitude });
+    // region (iOS: "東京都" / Android: "Tokyo"), subregion なども試す
     const candidates = [geo?.region, geo?.subregion, geo?.city].filter(Boolean) as string[];
     let pref: Prefecture | null = null;
     for (const c of candidates) {
