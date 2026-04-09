@@ -103,9 +103,9 @@ export function LoadingScreen() {
           />
           <Animated.View style={{ opacity: logoOpacity, transform: [{ scale: logoScale }] }}>
             <Image
-              source={require("@/assets/images/logo.png")}
+              source={require("@/assets/images/icon.png")}
               style={styles.logo}
-              resizeMode="cover"
+              resizeMode="contain"
             />
           </Animated.View>
         </View>
