@@ -25,7 +25,7 @@ export default function HomeScreen() {
   const { prefectures, schoolClosures } = useStatusData();
   const [refreshing, setRefreshing] = useState(false);
 
-  const topPad = Platform.OS === "web" ? 67 : insets.top;
+  const topPad = Platform.OS === "web" ? 0 : insets.top;
   const botPad = Platform.OS === "web" ? 34 + 84 : insets.bottom + 84;
 
   if (!isOnboarded) return <Redirect href="/onboarding" />;

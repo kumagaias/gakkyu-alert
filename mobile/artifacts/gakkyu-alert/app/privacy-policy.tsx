@@ -25,7 +25,7 @@ function Body({ children }: { children: React.ReactNode }) {
 export default function PrivacyPolicyScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const topPad = Platform.OS === "web" ? 67 : insets.top;
+  const topPad = Platform.OS === "web" ? 0 : insets.top;
   const botPad = Platform.OS === "web" ? 34 : insets.bottom + 16;
 
   return (
