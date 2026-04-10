@@ -43,6 +43,34 @@ function computeDateLabels(lastUpdated: string, count: number): string[] {
   });
 }
 
+// ── Forecast (linear regression on last N points) ───────────────────────────
+
+function linReg(history: number[]): { value: number; low: number; high: number } {
+  const recent = history.slice(-6);
+  const m = recent.length;
+  if (m < 2) return { value: recent[0] ?? 0, low: 0, high: recent[0] ?? 0 };
+
+  const xs = recent.map((_, i) => i);
+  const xMean = (m - 1) / 2;
+  const yMean = recent.reduce((s, v) => s + v, 0) / m;
+  const ssxy  = xs.reduce((s, x, i) => s + (x - xMean) * (recent[i] - yMean), 0);
+  const ssxx  = xs.reduce((s, x) => s + (x - xMean) ** 2, 0);
+  const b     = ssxx === 0 ? 0 : ssxy / ssxx;
+  const a     = yMean - b * xMean;
+  const pred  = a + b * m; // slot "m" = one week ahead
+
+  // RMSE of fit as CI half-width
+  const rmse = Math.sqrt(
+    xs.reduce((s, x, i) => s + (recent[i] - (a + b * x)) ** 2, 0) / m
+  );
+
+  return {
+    value: Math.max(0, Math.round(pred)),
+    low:   Math.max(0, Math.round(pred - rmse)),
+    high:  Math.round(pred + rmse),
+  };
+}
+
 // ── Line chart ───────────────────────────────────────────────────────────────
 
 function TrendLineChart({ history, lastUpdated }: { history: number[]; lastUpdated: string }) {
@@ -58,19 +86,37 @@ function TrendLineChart({ history, lastUpdated }: { history: number[]; lastUpdat
   const HEIGHT  = 130;
 
   const n      = history.length;
-  const maxVal = Math.max(...history, 1);
-  const labels = computeDateLabels(lastUpdated, n);
+  const fc     = linReg(history);                  // forecast
+  const maxVal = Math.max(...history, fc.high, 1);
+
+  // n historical + 1 forecast = n+1 total slots
+  const totalSlots = n + 1;
+  const labels     = computeDateLabels(lastUpdated, n);
+
+  // Forecast date label: lastUpdated + 7 days
+  const [ly, lm, ld] = lastUpdated.split("/").map(Number);
+  const fcDate = new Date(ly, lm - 1, ld + 7);
+  const fcLabel = `${fcDate.getMonth() + 1}/${fcDate.getDate()}`;
+
   const plotW  = chartWidth - PAD_H * 2;
   const plotH  = HEIGHT - PAD_TOP - PAD_BOT;
 
+  const xOf = (slot: number) => PAD_H + (slot / (totalSlots - 1)) * plotW;
+  const yOf = (val: number)  => PAD_TOP + (1 - val / maxVal) * plotH;
+
   const pts = history.map((val, i) => ({
-    x:         PAD_H + (i / (n - 1)) * plotW,
-    y:         PAD_TOP + (1 - val / maxVal) * plotH,
+    x:         xOf(i),
+    y:         yOf(val),
     val,
     label:     labels[i],
     isCurrent: i === n - 1,
     isPrev:    i === n - 2,
   }));
+
+  // Forecast point
+  const fcPt = { x: xOf(n), y: yOf(fc.value) };
+  const fcLowY  = yOf(fc.high);   // high value → lower y (closer to top)
+  const fcHighY = yOf(fc.low);    // low value  → higher y (closer to bottom)
 
   const linePts = pts.map((p) => `${p.x},${p.y}`).join(" ");
   const fillPath = [
@@ -171,6 +217,69 @@ function TrendLineChart({ history, lastUpdated }: { history: number[]; lastUpdat
             </G>
           );
         })}
+
+        {/* ── Forecast segment ── */}
+        {/* CI band (vertical rect at forecast x) */}
+        <Path
+          d={`M ${fcPt.x} ${fcLowY} L ${fcPt.x} ${fcHighY}`}
+          stroke={colors.primary}
+          strokeWidth={6}
+          strokeOpacity={0.15}
+          strokeLinecap="round"
+        />
+
+        {/* Dotted line from last actual → forecast */}
+        <Polyline
+          points={`${pts[n - 1].x},${pts[n - 1].y} ${fcPt.x},${fcPt.y}`}
+          fill="none"
+          stroke={colors.primary}
+          strokeWidth={2}
+          strokeDasharray="4,4"
+          strokeLinecap="round"
+        />
+
+        {/* Forecast open circle */}
+        <Circle
+          cx={fcPt.x} cy={fcPt.y}
+          r={5.5}
+          fill={colors.background}
+          stroke={colors.primary}
+          strokeWidth={2}
+          strokeDasharray="3,3"
+        />
+
+        {/* Forecast value label */}
+        <SvgText
+          x={fcPt.x} y={fcPt.y - 8}
+          textAnchor="end"
+          fontSize={9}
+          fontWeight="700"
+          fill={colors.primary}
+          fillOpacity={0.7}
+        >
+          {fc.value}
+        </SvgText>
+
+        {/* Forecast date */}
+        <SvgText
+          x={fcPt.x} y={HEIGHT - PAD_BOT + 14}
+          textAnchor="end"
+          fontSize={9}
+          fill={colors.mutedForeground}
+        >
+          {fcLabel}
+        </SvgText>
+
+        {/* 予測 tag */}
+        <SvgText
+          x={fcPt.x} y={HEIGHT - PAD_BOT + 26}
+          textAnchor="end"
+          fontSize={8}
+          fontWeight="700"
+          fill={colors.mutedForeground}
+        >
+          予測
+        </SvgText>
       </Svg>
     </View>
   );
