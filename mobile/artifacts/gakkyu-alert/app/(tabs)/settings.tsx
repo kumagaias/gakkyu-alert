@@ -149,7 +149,7 @@ export default function SettingsScreen() {
 
   const handleReset = () => setShowResetConfirm(true);
 
-  const topPad = Platform.OS === "web" ? 67 : insets.top;
+  const topPad = Platform.OS === "web" ? 0 : insets.top;
   const botPad = Platform.OS === "web" ? 34 + 84 : insets.bottom + 84;
 
   const [showAddChild, setShowAddChild] = useState(false);

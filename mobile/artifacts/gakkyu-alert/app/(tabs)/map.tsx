@@ -354,7 +354,7 @@ export default function MapScreen() {
   // 居住地区ID → 都道府県ID（現状は東京都固定、将来的に全都道府県対応）
   const homePrefId = homeDistrictId;
 
-  const topPad = Platform.OS === "web" ? 67 : insets.top;
+  const topPad = Platform.OS === "web" ? 0 : insets.top;
   const botPad = Platform.OS === "web" ? 34 + 84 : insets.bottom + 84;
 
   const levelMap = buildLevelMap(prefectures);
