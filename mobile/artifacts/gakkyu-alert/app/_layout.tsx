@@ -5,13 +5,13 @@ import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
 import { Platform, StyleSheet, View, useWindowDimensions } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { setBaseUrl } from "@workspace/api-client-react";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AppProvider } from "@/contexts/AppContext";
 import { LoadingScreen } from "@/components/LoadingScreen";
+import { useNotificationSetup } from "@/hooks/useNotificationSetup";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -41,6 +41,11 @@ function ResponsiveShell({ children }: { children: React.ReactNode }) {
   );
 }
 
+function NotificationSetup() {
+  useNotificationSetup();
+  return null;
+}
+
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
     Inter_400Regular: require("../assets/fonts/Inter_400Regular.ttf"),
@@ -64,16 +69,15 @@ export default function RootLayout() {
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
           <GestureHandlerRootView style={{ flex: 1 }}>
-            <KeyboardProvider>
-              <AppProvider>
-                <ResponsiveShell>
-                  <Stack screenOptions={{ headerShown: false }}>
-                    <Stack.Screen name="(tabs)" />
-                    <Stack.Screen name="onboarding" />
-                  </Stack>
-                </ResponsiveShell>
-              </AppProvider>
-            </KeyboardProvider>
+            <AppProvider>
+              <NotificationSetup />
+              <ResponsiveShell>
+                <Stack screenOptions={{ headerShown: false }}>
+                  <Stack.Screen name="(tabs)" />
+                  <Stack.Screen name="onboarding" />
+                </Stack>
+              </ResponsiveShell>
+            </AppProvider>
           </GestureHandlerRootView>
         </QueryClientProvider>
       </ErrorBoundary>

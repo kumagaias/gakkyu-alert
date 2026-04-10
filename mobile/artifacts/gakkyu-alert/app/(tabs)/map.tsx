@@ -148,6 +148,27 @@ function buildMapHTML(
       .addAttribution('© <a href="https://openstreetmap.org">OSM</a> © <a href="https://carto.com">CARTO</a>')
       .addTo(map);
 
+    // outer scope so message handler can access after processGeoJSON
+    var prefLayers = {};
+    var geojsonLayer = null;
+
+    function doFit() {
+      map.invalidateSize(true);
+      if (HOME_PREF && prefLayers[HOME_PREF]) {
+        map.fitBounds(prefLayers[HOME_PREF].getBounds(), { padding: [20, 20], maxZoom: 10 });
+      } else if (geojsonLayer) {
+        map.fitBounds(geojsonLayer.getBounds(), { padding: [10, 10] });
+      }
+    }
+
+    // Web iframe: parent sends { type:'fit' } after layout is ready
+    window.addEventListener('message', function(e) {
+      try {
+        var msg = JSON.parse(typeof e.data === 'string' ? e.data : '{}');
+        if (msg.type === 'fit') { doFit(); }
+      } catch(err) {}
+    });
+
     function processGeoJSON(data) {
       document.getElementById('loading').style.display = 'none';
       var features = data.features || [];
@@ -155,9 +176,7 @@ function buildMapHTML(
         send({ type: 'error', msg: 'no features' });
         return;
       }
-
-      var prefLayers = {};
-      var layer = L.geoJSON({ type: 'FeatureCollection', features: features }, {
+      geojsonLayer = L.geoJSON({ type: 'FeatureCollection', features: features }, {
         style: function(f) {
           var prefId = getPrefId(f.properties);
           var lv = getLevel(prefId);
@@ -193,19 +212,15 @@ function buildMapHTML(
             lyr.openPopup();
           });
           lyr.on('mouseout', function() {
-            layer.resetStyle(lyr);
+            geojsonLayer.resetStyle(lyr);
             lyr.closePopup();
           });
         }
       }).addTo(map);
 
-      // 全国表示 → 居住地都道府県にズームイン
-      map.fitBounds(layer.getBounds(), { padding: [10, 10] });
-      if (HOME_PREF && prefLayers[HOME_PREF]) {
-        setTimeout(function() {
-          map.fitBounds(prefLayers[HOME_PREF].getBounds(), { padding: [20, 20], maxZoom: 10 });
-        }, 400);
-      }
+      // Native WebView: fitBounds immediately (container is already sized)
+      // Web iframe: fitBounds triggered via { type:'fit' } message from parent
+      if (window.ReactNativeWebView) { doFit(); }
       send({ type: 'ready', count: features.length });
     }
 
@@ -258,6 +273,14 @@ function LeafletMapWeb({
       }
     };
     window.addEventListener("message", handleMsg);
+
+    // After the iframe layout settles, tell the map to fitBounds
+    iframe.addEventListener("load", () => {
+      setTimeout(() => {
+        iframe.contentWindow?.postMessage(JSON.stringify({ type: "fit" }), "*");
+      }, 50);
+    });
+
     el.appendChild(iframe);
 
     return () => {
