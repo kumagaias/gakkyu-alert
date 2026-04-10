@@ -21,7 +21,10 @@
         "NSLocationWhenInUseUsageDescription": "現在地から居住都道府県を自動取得するために使用します。",
         "ITSAppUsesNonExemptEncryption": false
       },
-      "buildNumber": "7"
+      "buildNumber": "9",
+      "entitlements": {
+        "aps-environment": "production"
+      }
     },
     "android": {},
     "web": {
