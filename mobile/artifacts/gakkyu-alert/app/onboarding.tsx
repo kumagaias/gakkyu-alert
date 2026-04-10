@@ -92,9 +92,20 @@ export default function OnboardingScreen() {
           `https://nominatim.openstreetmap.org/reverse?format=json&lat=${loc.coords.latitude}&lon=${loc.coords.longitude}`,
           { headers: { "Accept-Language": "ja" } }
         );
-        const data = (await res.json()) as { address?: { state?: string } };
-        const state = data.address?.state ?? "";
-        pref = PREFECTURES.find((p) => p.name === state) ?? null;
+        const data = (await res.json()) as {
+          address?: { state?: string; county?: string; city?: string; region?: string };
+        };
+        // state が都道府県名と一致しない場合は他フィールドも試す
+        const candidates = [
+          data.address?.state,
+          data.address?.county,
+          data.address?.city,
+          data.address?.region,
+        ].filter(Boolean) as string[];
+        for (const val of candidates) {
+          pref = PREFECTURES.find((p) => p.name === val || val.startsWith(p.name) || p.name.startsWith(val)) ?? null;
+          if (pref) break;
+        }
       } else {
         const [result] = await Location.reverseGeocodeAsync(loc.coords);
         // region (iOS: "東京都") / subregion (Android fallback) の両方を試す
@@ -118,7 +129,6 @@ export default function OnboardingScreen() {
   }, []);
 
   // ── Postal code state ───────────────────────────────────────────────────
-  const [showPostal, setShowPostal] = useState(false);
   const [postalCode, setPostalCode] = useState("");
   const [postalLoading, setPostalLoading] = useState(false);
   const [postalError, setPostalError] = useState<string | null>(null);
@@ -280,43 +290,29 @@ export default function OnboardingScreen() {
           </View>
 
           {/* — Postal code — */}
-          {showPostal ? (
-            <View style={[styles.postalBox, { borderColor: colors.border, backgroundColor: colors.card ?? colors.background }]}>
-              <View style={styles.postalInputRow}>
-                <Text style={[styles.postalPrefix, { color: colors.mutedForeground }]}>〒</Text>
-                <TextInput
-                  style={[styles.postalInput, { color: colors.foreground }]}
-                  placeholder="1234567"
-                  placeholderTextColor={colors.mutedForeground}
-                  keyboardType="number-pad"
-                  maxLength={8}
-                  value={postalCode}
-                  onChangeText={handlePostalChange}
-                  autoFocus
-                />
-                {postalLoading && <ActivityIndicator size="small" color={colors.primary} />}
-              </View>
-              <Text style={[styles.postalHint, { color: colors.mutedForeground }]}>
-                ハイフンなし7桁で自動検索
-              </Text>
-              {postalError && (
-                <Text style={[styles.errorText, { color: colors.destructive ?? "#ef4444" }]}>
-                  {postalError}
-                </Text>
-              )}
+          <View style={[styles.postalBox, { borderColor: colors.border, backgroundColor: colors.card ?? colors.background }]}>
+            <View style={styles.postalInputRow}>
+              <Text style={[styles.postalPrefix, { color: colors.mutedForeground }]}>〒</Text>
+              <TextInput
+                style={[styles.postalInput, { color: colors.foreground }]}
+                placeholder="1234567"
+                placeholderTextColor={colors.mutedForeground}
+                keyboardType="number-pad"
+                maxLength={8}
+                value={postalCode}
+                onChangeText={handlePostalChange}
+              />
+              {postalLoading && <ActivityIndicator size="small" color={colors.primary} />}
             </View>
-          ) : (
-            <TouchableOpacity
-              style={[styles.secondaryBtn, { borderColor: colors.border }]}
-              onPress={() => { setShowPostal(true); setLocationError(null); }}
-              activeOpacity={0.85}
-            >
-              <Feather name="mail" size={18} color={colors.foreground} />
-              <Text style={[styles.secondaryBtnText, { color: colors.foreground }]}>
-                郵便番号で検索
+            <Text style={[styles.postalHint, { color: colors.mutedForeground }]}>
+              郵便番号（ハイフンなし7桁）で自動検索
+            </Text>
+            {postalError && (
+              <Text style={[styles.errorText, { color: colors.destructive ?? "#ef4444" }]}>
+                {postalError}
               </Text>
-            </TouchableOpacity>
-          )}
+            )}
+          </View>
 
           {/* Detected prefecture preview */}
           {candidate && (
@@ -345,16 +341,6 @@ export default function OnboardingScreen() {
             {candidate && <Feather name="arrow-right" size={18} color="#fff" />}
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.manualLink}
-            onPress={() => setShowManualPicker(true)}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.manualLinkText, { color: colors.mutedForeground }]}>
-              一覧から選ぶ
-            </Text>
-            <Feather name="chevron-right" size={13} color={colors.mutedForeground} />
-          </TouchableOpacity>
         </View>
       </View>
 
