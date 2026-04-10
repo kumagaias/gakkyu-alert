@@ -74,28 +74,46 @@ export default function OnboardingScreen() {
     setCandidate(null);
     setPostalCode("");
     try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        setLocationError("位置情報の利用が許可されていません");
-        return;
+      let latitude: number;
+      let longitude: number;
+
+      if (Platform.OS === "web") {
+        // web はブラウザのネイティブ Geolocation API を直接使う（expo-location より確実）
+        const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+          if (!navigator.geolocation) {
+            reject(new Error("geolocation_unavailable"));
+            return;
+          }
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            timeout: 10000,
+            maximumAge: 60000,
+          });
+        });
+        latitude = pos.coords.latitude;
+        longitude = pos.coords.longitude;
+      } else {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== "granted") {
+          setLocationError("位置情報の利用が許可されていません");
+          return;
+        }
+        const loc = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
+        latitude = loc.coords.latitude;
+        longitude = loc.coords.longitude;
       }
-      const loc = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
 
       let pref: Prefecture | null = null;
 
       if (Platform.OS === "web") {
-        // expo-location の reverseGeocodeAsync は web では都道府県名を正しく
-        // 返せないことがある。Nominatim を直接 ja ロケールで叩く。
+        // Nominatim で逆ジオコーディング（複数フィールドを試す）
         const res = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${loc.coords.latitude}&lon=${loc.coords.longitude}`,
-          { headers: { "Accept-Language": "ja" } }
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=ja`,
         );
         const data = (await res.json()) as {
           address?: { state?: string; county?: string; city?: string; region?: string };
         };
-        // state が都道府県名と一致しない場合は他フィールドも試す
         const candidates = [
           data.address?.state,
           data.address?.county,
@@ -103,11 +121,13 @@ export default function OnboardingScreen() {
           data.address?.region,
         ].filter(Boolean) as string[];
         for (const val of candidates) {
-          pref = PREFECTURES.find((p) => p.name === val || val.startsWith(p.name) || p.name.startsWith(val)) ?? null;
+          pref = PREFECTURES.find(
+            (p) => p.name === val || val.startsWith(p.name) || p.name.startsWith(val)
+          ) ?? null;
           if (pref) break;
         }
       } else {
-        const [result] = await Location.reverseGeocodeAsync(loc.coords);
+        const [result] = await Location.reverseGeocodeAsync({ latitude, longitude });
         // region (iOS: "東京都") / subregion (Android fallback) の両方を試す
         for (const field of [result?.region, result?.subregion]) {
           if (!field) continue;
@@ -121,8 +141,12 @@ export default function OnboardingScreen() {
       } else {
         setLocationError("現在地から都道府県を特定できませんでした");
       }
-    } catch {
-      setLocationError("位置情報の取得に失敗しました");
+    } catch (err) {
+      if (err instanceof GeolocationPositionError && err.code === err.PERMISSION_DENIED) {
+        setLocationError("位置情報の利用が許可されていません");
+      } else {
+        setLocationError("位置情報の取得に失敗しました");
+      }
     } finally {
       setLocating(false);
     }

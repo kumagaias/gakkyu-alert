@@ -203,7 +203,7 @@ function buildMapHTML(
       map.fitBounds(layer.getBounds(), { padding: [10, 10] });
       if (HOME_PREF && prefLayers[HOME_PREF]) {
         setTimeout(function() {
-          map.fitBounds(prefLayers[HOME_PREF].getBounds(), { padding: [60, 60], maxZoom: 9 });
+          map.fitBounds(prefLayers[HOME_PREF].getBounds(), { padding: [20, 20], maxZoom: 10 });
         }, 400);
       }
       send({ type: 'ready', count: features.length });
@@ -237,10 +237,8 @@ function LeafletMapWeb({
   style?: object;
 }) {
   const containerRef = useRef<View>(null);
-  const cleanupRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
-    // Get the underlying DOM element from the React Native Web View ref
     const el = containerRef.current as unknown as HTMLDivElement | null;
     if (!el) return;
 
@@ -262,13 +260,12 @@ function LeafletMapWeb({
     window.addEventListener("message", handleMsg);
     el.appendChild(iframe);
 
-    cleanupRef.current = () => {
+    return () => {
       window.removeEventListener("message", handleMsg);
       URL.revokeObjectURL(url);
       if (el.contains(iframe)) el.removeChild(iframe);
     };
-    return () => cleanupRef.current?.();
-  }, []); // only mount once; html is stable
+  }, [html]); // html が変わったら iframe を作り直す
 
   return <View ref={containerRef} style={[{ flex: 1 }, style]} />;
 }
