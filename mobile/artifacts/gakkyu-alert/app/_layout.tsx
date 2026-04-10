@@ -11,6 +11,7 @@ import { setBaseUrl } from "@workspace/api-client-react";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AppProvider } from "@/contexts/AppContext";
 import { LoadingScreen } from "@/components/LoadingScreen";
+import { useNotificationSetup } from "@/hooks/useNotificationSetup";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -40,6 +41,11 @@ function ResponsiveShell({ children }: { children: React.ReactNode }) {
   );
 }
 
+function NotificationSetup() {
+  useNotificationSetup();
+  return null;
+}
+
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
     Inter_400Regular: require("../assets/fonts/Inter_400Regular.ttf"),
@@ -64,6 +70,7 @@ export default function RootLayout() {
         <QueryClientProvider client={queryClient}>
           <GestureHandlerRootView style={{ flex: 1 }}>
             <AppProvider>
+              <NotificationSetup />
               <ResponsiveShell>
                 <Stack screenOptions={{ headerShown: false }}>
                   <Stack.Screen name="(tabs)" />
