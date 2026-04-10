@@ -7,7 +7,7 @@
     "icon": "./assets/images/icon.png",
     "scheme": "gakkyu-alert",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "splash": {
       "image": "./assets/images/icon.png",
       "resizeMode": "contain",
@@ -20,7 +20,8 @@
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "現在地から居住都道府県を自動取得するために使用します。",
         "ITSAppUsesNonExemptEncryption": false
-      }
+      },
+      "buildNumber": "4"
     },
     "android": {},
     "web": {
