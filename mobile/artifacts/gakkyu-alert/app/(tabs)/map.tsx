@@ -199,12 +199,11 @@ function buildMapHTML(
         }
       }).addTo(map);
 
-      // 全国表示 → 居住地都道府県にズームイン
-      map.fitBounds(layer.getBounds(), { padding: [10, 10] });
+      // 居住地都道府県にズームイン（未設定の場合は全国表示）
       if (HOME_PREF && prefLayers[HOME_PREF]) {
-        setTimeout(function() {
-          map.fitBounds(prefLayers[HOME_PREF].getBounds(), { padding: [20, 20], maxZoom: 10 });
-        }, 400);
+        map.fitBounds(prefLayers[HOME_PREF].getBounds(), { padding: [20, 20], maxZoom: 10 });
+      } else {
+        map.fitBounds(layer.getBounds(), { padding: [10, 10] });
       }
       send({ type: 'ready', count: features.length });
     }
