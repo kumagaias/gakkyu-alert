@@ -46,7 +46,13 @@ interface Props {
 
 export function DistrictInfoPanel({ district, showFootnote = true }: Props) {
   const colors = useColors();
-  const { diseases: tokyoDiseases, prefClosureMap } = useStatusData();
+  const { diseases: tokyoDiseases, prefClosureMap, schoolClosures } = useStatusData();
+
+  // 学校閉鎖データから来週の見通し（閉鎖クラス数が多い順、なければ最初の非空文字列）
+  const topOutlook = schoolClosures.entries
+    .slice()
+    .sort((a, b) => b.closedClasses - a.closedClasses)
+    .find((e) => !!e.aiOutlook)?.aiOutlook;
   const [selectedDisease, setSelectedDisease] = useState<Disease | null>(null);
   const [showAllDiseases, setShowAllDiseases] = useState(false);
 
@@ -70,7 +76,7 @@ export function DistrictInfoPanel({ district, showFootnote = true }: Props) {
   return (
     <>
       {/* Epidemic level card */}
-      <EpidemicLevelCard level={district.level} />
+      <EpidemicLevelCard level={district.level} aiOutlook={topOutlook} />
 
       {/* School closure info */}
       {district.id === "tokyo"

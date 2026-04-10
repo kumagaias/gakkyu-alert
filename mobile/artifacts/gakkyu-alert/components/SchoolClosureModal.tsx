@@ -54,7 +54,7 @@ function TrendLineChart({ history, lastUpdated }: { history: number[]; lastUpdat
 
   const PAD_TOP = 22;
   const PAD_BOT = 38;
-  const PAD_H   = 4;
+  const PAD_H   = 10;
   const HEIGHT  = 130;
 
   const n      = history.length;
@@ -323,7 +323,7 @@ export function SchoolClosureModal({ entry, district, onClose }: Props) {
                 {entry.aiOutlook}
               </Text>
               <Text style={[styles.aiDisclaimer, { color: colors.mutedForeground }]}>
-                ※ Amazon Nova Lite による自動生成です。参考情報としてご利用ください。
+                ※ AIによる自動生成です。参考情報としてご利用ください。
               </Text>
             </View>
           )}

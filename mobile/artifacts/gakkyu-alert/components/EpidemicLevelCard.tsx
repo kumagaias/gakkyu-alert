@@ -13,6 +13,7 @@ const LEVEL_ICONS: Record<EpidemicLevel, string> = {
 
 interface Props {
   level: EpidemicLevel;
+  aiOutlook?: string;
 }
 
 const LEVEL_DESCRIPTIONS: Record<EpidemicLevel, string> = {
@@ -25,7 +26,7 @@ const LEVEL_DESCRIPTIONS: Record<EpidemicLevel, string> = {
 const LEVEL_COLORS = ["#94a3b8", "#eab308", "#f97316", "#ef4444"];
 const LEVEL_BG = ["#f1f5f9", "#fefce8", "#fff7ed", "#fef2f2"];
 
-export function EpidemicLevelCard({ level }: Props) {
+export function EpidemicLevelCard({ level, aiOutlook }: Props) {
   const colors = useColors();
   const [showModal, setShowModal] = useState(false);
 
@@ -56,7 +57,7 @@ export function EpidemicLevelCard({ level }: Props) {
             </TouchableOpacity>
 
             <View>
-              <Text style={[styles.schoolLabel, { color: lc.text, opacity: 0.65 }]}>学校・保育園の感染状況</Text>
+              <Text style={[styles.schoolLabel, { color: lc.text, opacity: 0.65 }]}>学校・保育園・幼稚園の感染状況</Text>
               <Text style={[styles.levelName, { color: lc.text }]}>{LEVEL_NAMES[level]}</Text>
             </View>
           </View>
@@ -65,6 +66,15 @@ export function EpidemicLevelCard({ level }: Props) {
           </View>
         </View>
         <Text style={[styles.summary, { color: lc.text }]}>{HOME_AI_SUMMARIES[level]}</Text>
+        {!!aiOutlook && (
+          <View style={[styles.outlookBox, { borderTopColor: lc.border }]}>
+            <View style={styles.outlookHeader}>
+              <Feather name="cpu" size={12} color={lc.text} style={{ opacity: 0.6 }} />
+              <Text style={[styles.outlookLabel, { color: lc.text, opacity: 0.6 }]}>来週の見通し（AI）</Text>
+            </View>
+            <Text style={[styles.outlookText, { color: lc.text }]}>{aiOutlook}</Text>
+          </View>
+        )}
       </View>
 
       {/* Level explanation modal */}
@@ -194,6 +204,25 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 22,
     fontWeight: "400",
+  },
+  outlookBox: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingTop: 10,
+    gap: 6,
+  },
+  outlookHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+  },
+  outlookLabel: {
+    fontSize: 11,
+    fontWeight: "600",
+    letterSpacing: 0.2,
+  },
+  outlookText: {
+    fontSize: 13,
+    lineHeight: 20,
   },
 
   // Modal
