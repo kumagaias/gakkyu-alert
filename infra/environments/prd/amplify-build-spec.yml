@@ -1,0 +1,20 @@
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - cd mobile
+        - corepack enable
+        - corepack prepare pnpm@10.28.2 --activate
+        - pnpm install --frozen-lockfile --store-dir .pnpm-store
+    build:
+      # CWD is mobile/ (persists from preBuild)
+      commands:
+        - EXPO_PROJECT_ROOT=$(pwd)/artifacts/gakkyu-alert pnpm --filter @workspace/gakkyu-alert run build:web
+  artifacts:
+    baseDirectory: mobile/artifacts/gakkyu-alert/dist
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - mobile/.pnpm-store/**/*

@@ -55,7 +55,7 @@ resource "aws_route53_record" "amplify_cert_validation" {
   allow_overwrite = true
 }
 
-# NOTE: サブドメインの A ALIAS レコード (gakkyu-alert-dev.kumagaias.com → CloudFront) は
+# NOTE: サブドメインの A ALIAS レコード (gakkyu-alert.kumagaias.com → CloudFront) は
 # aws_amplify_domain_association が自動作成するため Terraform では管理しない。
 
 # ---------------------------------------------------------------------------

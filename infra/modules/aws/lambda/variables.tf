@@ -36,3 +36,9 @@ variable "api_gateway_execution_arn" {
   type        = string
   default     = ""
 }
+
+variable "create_api_gateway_permission" {
+  description = "API Gateway から Lambda を呼び出す権限を付与するか (plan 時に確定する必要がある)"
+  type        = bool
+  default     = false
+}

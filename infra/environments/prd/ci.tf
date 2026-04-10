@@ -1,22 +1,12 @@
 # ---------------------------------------------------------------------------
 # GitHub Actions CI/CD — OIDC 認証 + デプロイロール
 #
-# 長期的な AWS_ACCESS_KEY_ID を使わず、GitHub の OIDC トークンで
-# 一時的な IAM 認証情報を取得する。
+# OIDC プロバイダーはアカウントに1つ。dev 環境で作成済みのため
+# data source で参照する。
 # ---------------------------------------------------------------------------
 
-# GitHub Actions の OIDC プロバイダー (アカウントに1つ)
-resource "aws_iam_openid_connect_provider" "github_actions" {
+data "aws_iam_openid_connect_provider" "github_actions" {
   url = "https://token.actions.githubusercontent.com"
-
-  client_id_list = ["sts.amazonaws.com"]
-
-  # AWS は 2023 年以降 GitHub の証明書を自動検証するが、
-  # Terraform リソースの required フィールドのため指定する。
-  thumbprint_list = [
-    "6938fd4d98bab03faadb97b34396831e3780aea1",
-    "1c58a3a8518e8759bf075b76b750d4f2df264fcd",
-  ]
 }
 
 # GitHub Actions が AssumeRoleWithWebIdentity できるトラストポリシー
@@ -27,20 +17,20 @@ data "aws_iam_policy_document" "github_actions_assume_role" {
 
     principals {
       type        = "Federated"
-      identifiers = [aws_iam_openid_connect_provider.github_actions.arn]
+      identifiers = [data.aws_iam_openid_connect_provider.github_actions.arn]
     }
 
-    # main ブランチへの push からのみ assume 可能
     condition {
       test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:aud"
       values   = ["sts.amazonaws.com"]
     }
 
+    # main ブランチへの push からのみ assume 可能
     condition {
       test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:kumagaias/gakkyu-alert:ref:refs/heads/dev"]
+      values   = ["repo:kumagaias/gakkyu-alert:ref:refs/heads/main"]
     }
   }
 }

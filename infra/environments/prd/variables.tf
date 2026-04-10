@@ -7,7 +7,7 @@ variable "aws_region" {
 variable "environment" {
   description = "Environment name"
   type        = string
-  default     = "dev"
+  default     = "prd"
 }
 
 variable "project" {
@@ -25,7 +25,7 @@ variable "github_repository_url" {
 variable "branch_name" {
   description = "Git branch to track for deployment"
   type        = string
-  default     = "dev"
+  default     = "main"
 }
 
 variable "github_token" {
@@ -37,7 +37,7 @@ variable "github_token" {
 variable "custom_domain" {
   description = "Custom domain to associate with the Amplify app"
   type        = string
-  default     = "gakkyu-alert-dev.kumagaias.com"
+  default     = "gakkyu-alert.kumagaias.com"
 }
 
 variable "route53_zone_name" {
@@ -45,4 +45,3 @@ variable "route53_zone_name" {
   type        = string
   default     = "kumagaias.com"
 }
-

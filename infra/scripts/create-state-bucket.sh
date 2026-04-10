@@ -2,10 +2,14 @@
 # Creates the S3 bucket used for Terraform remote state.
 # Run once before the first `terraform init`.
 #
+# Usage: bash create-state-bucket.sh [env]
+#   env: dev (default) | prd
+#
 # Prerequisites: AWS CLI configured with sufficient permissions.
 set -euo pipefail
 
-BUCKET_NAME="gakkyu-alert-dev-tfstate"
+ENV="${1:-dev}"
+BUCKET_NAME="gakkyu-alert-${ENV}-tfstate"
 REGION="ap-northeast-1"
 
 echo "Creating S3 state bucket: ${BUCKET_NAME} in ${REGION} ..."
@@ -35,4 +39,4 @@ aws s3api put-public-access-block \
     "BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true"
 
 echo "✅  Bucket ${BUCKET_NAME} ready."
-echo "    Next: cd infra/environments/dev && terraform init"
+echo "    Next: cd infra/environments/${ENV} && terraform init"

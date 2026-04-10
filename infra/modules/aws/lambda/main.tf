@@ -22,7 +22,7 @@ resource "aws_cloudwatch_log_group" "this" {
 }
 
 resource "aws_lambda_permission" "api_gateway" {
-  count = var.api_gateway_execution_arn != "" ? 1 : 0
+  count = var.create_api_gateway_permission ? 1 : 0
 
   statement_id  = "AllowAPIGatewayInvoke"
   action        = "lambda:InvokeFunction"

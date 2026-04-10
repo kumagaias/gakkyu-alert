@@ -11,7 +11,7 @@ import {
   View,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { router, type Href } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
 import { useApp, type Child } from "@/contexts/AppContext";
@@ -365,6 +365,16 @@ export default function SettingsScreen() {
             <Text style={[styles.rowLabel, { color: colors.destructive }]}>初期化してやりなおす</Text>
             <Feather name="chevron-right" size={16} color={colors.destructive} />
           </TouchableOpacity>
+        </View>
+
+        {/* About */}
+        <SectionHeader title="アプリについて" />
+        <View style={[styles.sectionBlock, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <SettingsRow
+            icon="shield"
+            label="プライバシーポリシー"
+            onPress={() => router.push("/privacy-policy" as Href)}
+          />
         </View>
 
         <Text style={[styles.version, { color: colors.mutedForeground }]}>
