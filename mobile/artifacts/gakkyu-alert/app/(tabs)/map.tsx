@@ -200,15 +200,31 @@ function buildMapHTML(
       }).addTo(map);
 
       // 居住地都道府県にズームイン（未設定の場合は全国表示）
-      // requestAnimationFrame でコンテナサイズ確定後に実行（web iframe 対応）
-      requestAnimationFrame(function() {
-        map.invalidateSize();
+      // ResizeObserver でコンテナに実サイズが入ってから fitBounds を実行
+      var fitted = false;
+      function doFit() {
+        if (fitted) return;
+        fitted = true;
+        map.invalidateSize(true);
         if (HOME_PREF && prefLayers[HOME_PREF]) {
           map.fitBounds(prefLayers[HOME_PREF].getBounds(), { padding: [20, 20], maxZoom: 10 });
         } else {
           map.fitBounds(layer.getBounds(), { padding: [10, 10] });
         }
-      });
+      }
+      if (typeof ResizeObserver !== 'undefined') {
+        var ro = new ResizeObserver(function(entries) {
+          for (var entry of entries) {
+            if (entry.contentRect.width > 0 && entry.contentRect.height > 0) {
+              ro.disconnect();
+              requestAnimationFrame(doFit);
+            }
+          }
+        });
+        ro.observe(document.getElementById('map'));
+      } else {
+        requestAnimationFrame(doFit);
+      }
       send({ type: 'ready', count: features.length });
     }
 
