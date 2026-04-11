@@ -152,7 +152,7 @@ async function invokeNova(
     })
   );
   const body = JSON.parse(new TextDecoder().decode(res.body)) as NovaResponseBody;
-  await sleep(300);
+  await sleep(800);
   return body.output?.message?.content?.[0]?.text?.trim() ?? "";
 }
 
@@ -524,27 +524,16 @@ export const handler = async (): Promise<void> => {
       disease.twoWeeksAgoCount = counts[counts.length - 2] ?? 0;
     }
 
-    // AI コメント (level 変化時のみ生成、キャッシュあり)
+    // AI コメント (level > 0 の疾患のみ生成、キャッシュあり)
+    // level = 0 (平穏) はコメント不要 → Bedrock 呼び出し数を大幅削減
     for (const disease of diseaseBreakdown) {
+      if (disease.level === 0) continue;
       try {
         disease.aiComment = await generateDiseaseComment(
           bedrock, prefId, prefName, disease.id, disease.perSentinel, disease.level
         );
       } catch (err) {
         logger.warn({ prefId, diseaseId: disease.id, err }, "都道府県疾患 AI コメント生成失敗 — スキップ");
-      }
-    }
-
-    // AI 見通し (週次履歴にデータがある疾患のみ、weekKey でキャッシュ)
-    for (const disease of diseaseBreakdown) {
-      if (disease.weeklyHistory.some((v) => v > 0)) {
-        try {
-          disease.aiOutlook = await generateDiseaseOutlook(
-            bedrock, prefId, prefName, disease.id, disease.weeklyHistory, weekKey
-          );
-        } catch (err) {
-          logger.warn({ prefId, diseaseId: disease.id, err }, "都道府県疾患 AI 見通し生成失敗 — スキップ");
-        }
       }
     }
 
