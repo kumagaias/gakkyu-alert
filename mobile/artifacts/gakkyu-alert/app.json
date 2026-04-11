@@ -26,7 +26,17 @@
         "aps-environment": "production"
       }
     },
-    "android": {},
+    "android": {
+      "package": "jp.gakkyu_alert.app",
+      "icon": "./assets/images/icon.png",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/icon.png",
+        "backgroundColor": "#1a4bab"
+      },
+      "permissions": [
+        "android.permission.RECEIVE_BOOT_COMPLETED"
+      ]
+    },
     "web": {
       "bundler": "metro",
       "output": "single",
