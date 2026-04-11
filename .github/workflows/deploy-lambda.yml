@@ -1,9 +1,9 @@
 name: Deploy Lambda
 
-# main へのマージ時、Lambda に関連するファイルが変更された場合に実行
+# dev へのマージ時、Lambda に関連するファイルが変更された場合に実行
 on:
   push:
-    branches: [main]
+    branches: [dev]
     paths:
       - 'mobile/artifacts/api-server/**'
       - 'mobile/lib/**'
