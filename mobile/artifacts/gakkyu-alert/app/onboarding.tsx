@@ -80,12 +80,13 @@ export default function OnboardingScreen() {
       if (Platform.OS === "web") {
         // web はブラウザのネイティブ Geolocation API を直接使う（expo-location より確実）
         const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
-          if (!navigator.geolocation) {
+          if (!navigator?.geolocation) {
             reject(new Error("geolocation_unavailable"));
             return;
           }
           navigator.geolocation.getCurrentPosition(resolve, reject, {
-            timeout: 10000,
+            enableHighAccuracy: false,
+            timeout: 15000,
             maximumAge: 60000,
           });
         });
@@ -111,6 +112,7 @@ export default function OnboardingScreen() {
         const res = await fetch(
           `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=ja`,
         );
+        if (!res.ok) throw new Error("nominatim_error");
         const data = (await res.json()) as {
           address?: { state?: string; county?: string; city?: string; region?: string };
         };
@@ -125,6 +127,14 @@ export default function OnboardingScreen() {
             (p) => p.name === val || val.startsWith(p.name) || p.name.startsWith(val)
           ) ?? null;
           if (pref) break;
+        }
+        // Nominatim が英語名を返した場合のフォールバック
+        if (!pref) {
+          for (const val of candidates) {
+            const id = EN_TO_ID[val];
+            if (id) { pref = PREFECTURES.find((p) => p.id === id) ?? null; }
+            if (pref) break;
+          }
         }
       } else {
         const [result] = await Location.reverseGeocodeAsync({ latitude, longitude });
@@ -142,8 +152,13 @@ export default function OnboardingScreen() {
         setLocationError("現在地から都道府県を特定できませんでした");
       }
     } catch (err) {
-      if (err instanceof GeolocationPositionError && err.code === err.PERMISSION_DENIED) {
+      const code = (err as GeolocationPositionError)?.code;
+      if (code === 1) {
         setLocationError("位置情報の利用が許可されていません");
+      } else if (code === 2) {
+        setLocationError("現在地を特定できませんでした（位置情報サービスを確認してください）");
+      } else if (code === 3) {
+        setLocationError("位置情報の取得がタイムアウトしました");
       } else {
         setLocationError("位置情報の取得に失敗しました");
       }
