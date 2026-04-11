@@ -390,8 +390,10 @@ export default function MapScreen() {
   const [selectedDistrict, setSelectedDistrict] = useState<District | null>(null);
   const [mapError, setMapError] = useState(false);
 
-  // 居住地区ID → 都道府県ID（現状は東京都固定、将来的に全都道府県対応）
-  const homePrefId = homeDistrictId ? "tokyo" : null;
+  // 居住地区IDが都道府県IDかどうか確認（東京区市は district ID → "tokyo" に変換）
+  const homePrefId = homeDistrictId
+    ? (PREFECTURES.some((p) => p.id === homeDistrictId) ? homeDistrictId : "tokyo")
+    : null;
 
   const topPad = Platform.OS === "web" ? 0 : insets.top;
   const botPad = Platform.OS === "web" ? 34 + 84 : insets.bottom + 84;
