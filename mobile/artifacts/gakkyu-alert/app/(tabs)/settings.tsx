@@ -338,6 +338,12 @@ export default function SettingsScreen() {
         <SectionHeader title="アプリについて" />
         <View style={[styles.sectionBlock, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <SettingsRow
+            icon="database"
+            label="データソース"
+            onPress={() => router.push("/data-sources" as Href)}
+          />
+          <View style={[styles.divider, { backgroundColor: colors.border }]} />
+          <SettingsRow
             icon="shield"
             label="プライバシーポリシー"
             onPress={() => router.push("/privacy-policy" as Href)}
