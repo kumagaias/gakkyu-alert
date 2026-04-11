@@ -234,6 +234,21 @@ components:
           type: integer
           minimum: 0
           maximum: 3
+        weeklyHistory:
+          type: array
+          items:
+            type: number
+          description: 過去8週の定点当り患者数（古い順）
+        lastWeekCount:
+          type: number
+        twoWeeksAgoCount:
+          type: number
+        aiComment:
+          type: string
+          description: AI 生成コメント
+        aiOutlook:
+          type: string
+          description: AI 生成見通し
       required:
         - id
         - perSentinel

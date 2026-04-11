@@ -101,6 +101,17 @@ export const GetStatusResponse = zod.object({
                     .number()
                     .min(getStatusResponsePrefecturesItemDiseasesItemLevelMin)
                     .max(getStatusResponsePrefecturesItemDiseasesItemLevelMax),
+                  weeklyHistory: zod
+                    .array(zod.number())
+                    .optional()
+                    .describe("過去8週の定点当り患者数（古い順）"),
+                  lastWeekCount: zod.number().optional(),
+                  twoWeeksAgoCount: zod.number().optional(),
+                  aiComment: zod
+                    .string()
+                    .optional()
+                    .describe("AI 生成コメント"),
+                  aiOutlook: zod.string().optional().describe("AI 生成見通し"),
                 })
                 .describe("都道府県別疾患内訳"),
             )

@@ -207,32 +207,39 @@ COVID-19定点当り: ${covidPerSentinel.toFixed(2)}
 
 async function generateDiseaseComment(
   client: BedrockRuntimeClient,
+  prefId: string,
+  prefName: string,
   diseaseId: string,
   perSentinel: number,
   level: number
 ): Promise<string> {
   const trend =
     level === 3 ? "急増" : level === 2 ? "増加中" : level === 1 ? "散発" : "落ち着き";
-  return invokeNova(
+  // キャッシュキー: prefId#diseaseId を id とし、level 変化でキャッシュミス
+  return getCachedOrGenerateSummary(
     client,
-    `東京都の感染症データを保護者向けに1〜2文で簡潔にコメントしてください。
+    `${prefId}#${diseaseId}`,
+    level,
+    () =>
+      `${prefName}の感染症データを保護者向けに1〜2文で簡潔にコメントしてください。
 疾患ID: ${diseaseId}
 定点あたり患者数: ${perSentinel.toFixed(2)}
 流行レベル: ${level} (0=なし, 1=注意, 2=警戒, 3=流行)
 傾向: ${trend}
-出力は日本語の1〜2文のみ。余分な説明不要。`,
-    120
+出力は日本語の1〜2文のみ。余分な説明不要。`
   );
 }
 
 async function generateDiseaseOutlook(
   client: BedrockRuntimeClient,
+  prefId: string,
+  prefName: string,
   diseaseId: string,
   weeklyHistory: number[],
   weekKey: string
 ): Promise<string> {
-  // キャッシュキー: weekKey が変わると自動的にキャッシュミス
-  const cacheKey = `${diseaseId}#outlook#${weekKey}`;
+  // キャッシュキー: prefId + diseaseId + weekKey で都道府県ごとにキャッシュ
+  const cacheKey = `${prefId}#${diseaseId}#outlook#${weekKey}`;
   const cached = await getSnapshotByKey<{ outlook: string }>(
     "PREF_SUMMARY_CACHE",
     cacheKey
@@ -249,7 +256,7 @@ async function generateDiseaseOutlook(
 
   const outlook = await invokeNova(
     client,
-    `東京都の感染症（疾患ID: ${diseaseId}）について、定点当り患者数の過去8週データに基づき、来週の見通しを保護者向けに1〜2文で予測してください。
+    `${prefName}の感染症（疾患ID: ${diseaseId}）について、定点当り患者数の過去8週データに基づき、来週の見通しを保護者向けに1〜2文で予測してください。
 過去8週の定点当り患者数（古い順）: ${weeklyHistory.map((v) => v.toFixed(2)).join(", ")}
 現在: ${month}月（${season}）
 出力は日本語の1〜2文のみ。増加・減少・横ばいなどの傾向を定性的に。具体的な数値の断言は避ける。`,
@@ -347,7 +354,7 @@ export const handler = async (): Promise<void> => {
     const level = calcLevel(rec.perSentinel, FLU_THRESHOLDS);
     let aiComment = "";
     try {
-      aiComment = await generateDiseaseComment(bedrock, diseaseId, rec.perSentinel, level);
+      aiComment = await generateDiseaseComment(bedrock, "tokyo", "東京都", diseaseId, rec.perSentinel, level);
     } catch (err) {
       logger.warn({ diseaseId, err }, "疾患 AI コメント生成失敗 — スキップ");
     }
@@ -376,6 +383,8 @@ export const handler = async (): Promise<void> => {
       try {
         disease.aiOutlook = await generateDiseaseOutlook(
           bedrock,
+          "tokyo",
+          "東京都",
           disease.id,
           disease.weeklyHistory,
           weekKey
@@ -449,27 +458,95 @@ export const handler = async (): Promise<void> => {
     const entry = prefMap.get(rec.prefectureId)!;
     if (rec.diseaseId === "flu-a") entry.flu   = rec.perSentinel;
     if (rec.diseaseId === "covid") entry.covid = rec.perSentinel;
-    // 最初の行を採用 (重複疾患はスキップ)
     if (!entry.all.has(rec.diseaseId)) {
       entry.all.set(rec.diseaseId, rec.perSentinel);
     }
   }
 
+  // 週次履歴構築用: 過去 (WEEKLY_HISTORY_WEEKS-1) 週分の PREFECTURE_STATUS を一括取得
+  type HistoryPrefDisease = { id: string; perSentinel: number };
+  type HistoryPrefEntry   = { id: string; diseases: HistoryPrefDisease[] };
+  type HistorySnap        = { prefectures: HistoryPrefEntry[] };
+
+  const prevPrefSnaps = await querySnapshots<HistorySnap>({
+    KeyConditionExpression: "pk = :pk AND sk < :sk",
+    ExpressionAttributeValues: { ":pk": "PREFECTURE_STATUS", ":sk": weekKey },
+    ScanIndexForward: false,
+    Limit: WEEKLY_HISTORY_WEEKS - 1,
+  }).then((snaps) => snaps.reverse());
+
+  type PrefDiseaseEntry = {
+    id: string;
+    perSentinel: number;
+    level: number;
+    weeklyHistory: number[];
+    lastWeekCount: number;
+    twoWeeksAgoCount: number;
+    aiComment: string;
+    aiOutlook: string;
+  };
+
   const prefectures: Array<{
     id: string;
     level: number;
     aiSummary: string;
-    diseases: Array<{ id: string; perSentinel: number; level: number }>;
+    diseases: PrefDiseaseEntry[];
   }> = [];
 
   for (const [prefId, { flu, covid, all }] of prefMap) {
     const level = prefLevel(flu, covid);
+    const prefName = PREF_NAMES[prefId] ?? prefId;
 
-    const diseaseBreakdown = Array.from(all.entries()).map(([diseaseId, perSentinel]) => ({
-      id: diseaseId,
-      perSentinel,
-      level: calcLevel(perSentinel, diseaseId === "covid" ? COVID_THRESHOLDS : FLU_THRESHOLDS),
-    }));
+    // 疾患ごとに週次履歴・AI を構築
+    const diseaseBreakdown: PrefDiseaseEntry[] = Array.from(all.entries()).map(
+      ([diseaseId, perSentinel]) => ({
+        id: diseaseId,
+        perSentinel,
+        level: calcLevel(perSentinel, diseaseId === "covid" ? COVID_THRESHOLDS : FLU_THRESHOLDS),
+        weeklyHistory: [],
+        lastWeekCount: 0,
+        twoWeeksAgoCount: 0,
+        aiComment: "",
+        aiOutlook: "",
+      })
+    );
+
+    // 週次履歴: 過去スナップから perSentinel を抽出
+    for (const disease of diseaseBreakdown) {
+      const counts = prevPrefSnaps.map((snap) => {
+        const pref = snap.prefectures?.find((p) => p.id === prefId);
+        const d = pref?.diseases?.find((x) => x.id === disease.id);
+        return (d as { perSentinel?: number } | undefined)?.perSentinel ?? 0;
+      });
+      while (counts.length < WEEKLY_HISTORY_WEEKS - 1) counts.unshift(0);
+      disease.weeklyHistory    = [...counts, disease.perSentinel];
+      disease.lastWeekCount    = counts[counts.length - 1] ?? 0;
+      disease.twoWeeksAgoCount = counts[counts.length - 2] ?? 0;
+    }
+
+    // AI コメント (level 変化時のみ生成、キャッシュあり)
+    for (const disease of diseaseBreakdown) {
+      try {
+        disease.aiComment = await generateDiseaseComment(
+          bedrock, prefId, prefName, disease.id, disease.perSentinel, disease.level
+        );
+      } catch (err) {
+        logger.warn({ prefId, diseaseId: disease.id, err }, "都道府県疾患 AI コメント生成失敗 — スキップ");
+      }
+    }
+
+    // AI 見通し (週次履歴にデータがある疾患のみ、weekKey でキャッシュ)
+    for (const disease of diseaseBreakdown) {
+      if (disease.weeklyHistory.some((v) => v > 0)) {
+        try {
+          disease.aiOutlook = await generateDiseaseOutlook(
+            bedrock, prefId, prefName, disease.id, disease.weeklyHistory, weekKey
+          );
+        } catch (err) {
+          logger.warn({ prefId, diseaseId: disease.id, err }, "都道府県疾患 AI 見通し生成失敗 — スキップ");
+        }
+      }
+    }
 
     let aiSummary = "";
     try {
