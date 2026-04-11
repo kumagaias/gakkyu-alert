@@ -114,8 +114,10 @@ export default function OnboardingScreen() {
         );
         if (!res.ok) throw new Error("nominatim_error");
         const data = (await res.json()) as {
+          display_name?: string;
           address?: { state?: string; county?: string; city?: string; region?: string };
         };
+        // address の各フィールドを順に試す
         const candidates = [
           data.address?.state,
           data.address?.county,
@@ -128,13 +130,9 @@ export default function OnboardingScreen() {
           ) ?? null;
           if (pref) break;
         }
-        // Nominatim が英語名を返した場合のフォールバック
-        if (!pref) {
-          for (const val of candidates) {
-            const id = EN_TO_ID[val];
-            if (id) { pref = PREFECTURES.find((p) => p.id === id) ?? null; }
-            if (pref) break;
-          }
+        // display_name をスキャン（state が省略される住所でも "東京都" 等が含まれる）
+        if (!pref && data.display_name) {
+          pref = PREFECTURES.find((p) => data.display_name!.includes(p.name)) ?? null;
         }
       } else {
         const [result] = await Location.reverseGeocodeAsync({ latitude, longitude });
