@@ -261,9 +261,9 @@ export default function SettingsScreen() {
           */}
         </View>
 
-        {/* Notifications */}
-        <SectionHeader title="通知" />
-        <View style={[styles.sectionBlock, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        {/* Notifications — web では Push 非対応のため非表示 */}
+        {Platform.OS !== "web" && <SectionHeader title="通知" />}
+        {Platform.OS !== "web" && <View style={[styles.sectionBlock, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <SettingsRow
             icon="bell"
             label="Push通知"
@@ -310,7 +310,7 @@ export default function SettingsScreen() {
               </View>
             </>
           )}
-        </View>
+        </View>}
 
         {/* Account */}
         <SectionHeader title="アカウント（任意）" />
