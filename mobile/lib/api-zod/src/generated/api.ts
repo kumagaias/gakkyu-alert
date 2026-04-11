@@ -137,29 +137,12 @@ export const GetStatusResponse = zod.object({
 /**
  * @summary デバイス登録 / 設定同期
  */
-export const registerDeviceBodyWeeklyDayMin = 0;
-export const registerDeviceBodyWeeklyDayMax = 6;
-
-export const registerDeviceBodyWeeklyHourMin = 0;
-export const registerDeviceBodyWeeklyHourMax = 23;
-
 export const RegisterDeviceBody = zod.object({
   fcmToken: zod.string(),
   platform: zod.enum(["ios", "android", "web"]),
   homeDistrictId: zod.string(),
   extraDistrictIds: zod.array(zod.string()).optional(),
   alertLevel: zod.union([zod.literal(2), zod.literal(3)]),
-  weeklyEnabled: zod.boolean().optional(),
-  weeklyDay: zod
-    .number()
-    .min(registerDeviceBodyWeeklyDayMin)
-    .max(registerDeviceBodyWeeklyDayMax)
-    .optional(),
-  weeklyHour: zod
-    .number()
-    .min(registerDeviceBodyWeeklyHourMin)
-    .max(registerDeviceBodyWeeklyHourMax)
-    .optional(),
 });
 
 export const RegisterDeviceResponse = zod.object({

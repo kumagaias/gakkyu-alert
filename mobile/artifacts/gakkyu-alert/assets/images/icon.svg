@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Background -->
+  <rect width="1024" height="1024" rx="224" fill="#1a4bab"/>
+
+  <!-- Shield -->
+  <path d="M512 180 L740 270 L740 520 Q740 680 512 820 Q284 680 284 520 L284 270 Z"
+        fill="white" opacity="0.15"/>
+  <path d="M512 200 L724 284 L724 516 Q724 666 512 800 Q300 666 300 516 L300 284 Z"
+        fill="white"/>
+
+  <!-- Cross -->
+  <rect x="464" y="360" width="96" height="280" rx="16" fill="#1a4bab"/>
+  <rect x="352" y="472" width="320" height="96" rx="16" fill="#1a4bab"/>
+</svg>

@@ -14,15 +14,4 @@ export interface DeviceRegistration {
   homeDistrictId: string;
   extraDistrictIds?: string[];
   alertLevel: DeviceRegistrationAlertLevel;
-  weeklyEnabled?: boolean;
-  /**
-   * @minimum 0
-   * @maximum 6
-   */
-  weeklyDay?: number;
-  /**
-   * @minimum 0
-   * @maximum 23
-   */
-  weeklyHour?: number;
 }

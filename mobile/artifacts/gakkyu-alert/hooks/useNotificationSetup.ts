@@ -66,9 +66,6 @@ export function useNotificationSetup() {
           homeDistrictId: homeDistrictId ?? "",
           extraDistrictIds: extraDistrictIds,
           alertLevel: notifications.alertLevel,
-          weeklyEnabled: true,
-          weeklyDay: notifications.weeklyDay,
-          weeklyHour: notifications.weeklyHour,
         },
       });
     }
@@ -78,8 +75,6 @@ export function useNotificationSetup() {
   }, [
     notifications.enabled,
     notifications.alertLevel,
-    notifications.weeklyDay,
-    notifications.weeklyHour,
     homeDistrictId,
     extraDistrictIds,
     registerDevice,

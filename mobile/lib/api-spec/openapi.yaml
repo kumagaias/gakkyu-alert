@@ -320,16 +320,6 @@ components:
         alertLevel:
           type: integer
           enum: [2, 3]
-        weeklyEnabled:
-          type: boolean
-        weeklyDay:
-          type: integer
-          minimum: 0
-          maximum: 6
-        weeklyHour:
-          type: integer
-          minimum: 0
-          maximum: 23
       required:
         - fcmToken
         - platform

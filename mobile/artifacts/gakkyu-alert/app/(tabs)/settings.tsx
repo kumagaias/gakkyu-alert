@@ -159,8 +159,6 @@ export default function SettingsScreen() {
   const [pickerTarget, setPickerTarget] = useState<"home" | "extra">("home");
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
-  const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
-
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View
@@ -305,37 +303,6 @@ export default function SettingsScreen() {
                         ]}
                       >
                         {lv === 2 ? "警戒以上" : "流行のみ"}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-              <View style={[styles.divider, { backgroundColor: colors.border }]} />
-              <View style={[styles.settingsRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                <View style={[styles.rowIcon, { backgroundColor: colors.muted }]}>
-                  <Feather name="calendar" size={16} color={colors.primary} />
-                </View>
-                <Text style={[styles.rowLabel, { color: colors.foreground }]}>週次サマリー</Text>
-                <View style={styles.dayPicker}>
-                  {WEEKDAYS.map((day, i) => (
-                    <TouchableOpacity
-                      key={day}
-                      style={[
-                        styles.dayChip,
-                        {
-                          backgroundColor:
-                            notifications.weeklyDay === i ? colors.primary : colors.muted,
-                        },
-                      ]}
-                      onPress={() => updateNotifications({ weeklyDay: i })}
-                    >
-                      <Text
-                        style={[
-                          styles.dayChipText,
-                          { color: notifications.weeklyDay === i ? "#fff" : colors.mutedForeground },
-                        ]}
-                      >
-                        {day}
                       </Text>
                     </TouchableOpacity>
                   ))}
@@ -594,21 +561,6 @@ const styles = StyleSheet.create({
   },
   levelChipText: {
     fontSize: 12,
-    fontWeight: "600",
-  },
-  dayPicker: {
-    flexDirection: "row",
-    gap: 4,
-  },
-  dayChip: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  dayChipText: {
-    fontSize: 11,
     fontWeight: "600",
   },
   resetRow: {
