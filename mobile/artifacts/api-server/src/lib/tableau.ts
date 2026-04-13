@@ -99,7 +99,13 @@ function buildEntry(
   );
 
   const latest = sorted[0] ?? null;
-  const closedClasses = parseInt(latest?.["Measure Values"] ?? "0", 10) || 0;
+
+  // 最新レコードが 14 日以上前の場合は現在の閉鎖なしとして扱う
+  // （Tableau は閉鎖が 0 の週のレコードを返さないため古いデータが「最新」になる問題を回避）
+  const latestDate = latest ? new Date(latest["Day of 表示年月日"]) : null;
+  const isStale = latestDate ? (Date.now() - latestDate.getTime()) > 14 * 24 * 60 * 60 * 1000 : true;
+
+  const closedClasses = isStale ? 0 : (parseInt(latest?.["Measure Values"] ?? "0", 10) || 0);
 
   // 先週値（インデックス 1）
   const weekAgoClasses = parseInt(sorted[1]?.["Measure Values"] ?? "0", 10) || 0;
