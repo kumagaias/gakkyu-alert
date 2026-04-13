@@ -115,7 +115,13 @@ function ClosureRow({
 }
 
 /** 都道府県別閉鎖クラス表示（学校等欠席者・感染症情報システムデータ） */
-function PrefClosureContent({ prefClosure }: { prefClosure: PrefClosureStatus }) {
+function PrefClosureContent({
+  prefClosure,
+  onPress,
+}: {
+  prefClosure: PrefClosureStatus;
+  onPress: (entry: SchoolClosureEntry) => void;
+}) {
   const colors = useColors();
 
   if (!prefClosure.hasData) {
@@ -161,7 +167,7 @@ function PrefClosureContent({ prefClosure }: { prefClosure: PrefClosureStatus })
   return (
     <>
       {entries.map((entry, i) => (
-        <ClosureRow key={entry.diseaseId} entry={entry} isFirst={i === 0} />
+        <ClosureRow key={entry.diseaseId} entry={entry} isFirst={i === 0} onPress={onPress} />
       ))}
     </>
   );
@@ -195,8 +201,13 @@ export function SchoolClosureCard({ district, prefClosure, prefName }: Props) {
           )}
         </View>
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <PrefClosureContent prefClosure={prefClosure} />
+          <PrefClosureContent prefClosure={prefClosure} onPress={setSelectedEntry} />
         </View>
+        <SchoolClosureModal
+          entry={selectedEntry}
+          prefName={prefName}
+          onClose={() => setSelectedEntry(null)}
+        />
       </View>
     );
   }

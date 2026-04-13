@@ -28,6 +28,7 @@ import { SCHOOL_CLOSURES, type SchoolClosureEntry, type District } from "@/const
 interface Props {
   entry: SchoolClosureEntry | null;
   district?: District | null;
+  prefName?: string;
   onClose: () => void;
 }
 
@@ -285,32 +286,33 @@ function TrendLineChart({ history, lastUpdated }: { history: number[]; lastUpdat
   );
 }
 
-function getSummaryText(entry: SchoolClosureEntry): string {
+function getSummaryText(entry: SchoolClosureEntry, location: string): string {
   const { diseaseName, closedClasses, weekAgoClasses } = entry;
   const delta = closedClasses - weekAgoClasses;
 
   if (closedClasses === 0) {
     if (weekAgoClasses > 0) {
-      return `東京都全体で${diseaseName}の学級閉鎖は現在ありません。先週は${weekAgoClasses}クラス閉鎖されていましたが、解消されました。引き続き手洗い・換気など基本的な感染対策を続けましょう。`;
+      return `${location}で${diseaseName}の学級閉鎖は現在ありません。先週は${weekAgoClasses}クラス閉鎖されていましたが、解消されました。引き続き手洗い・換気など基本的な感染対策を続けましょう。`;
     }
-    return `東京都全体で${diseaseName}の学級閉鎖は報告されていません。感染状況は落ち着いています。`;
+    return `${location}で${diseaseName}の学級閉鎖は報告されていません。感染状況は落ち着いています。`;
   }
   if (delta > 0) {
-    return `東京都全体で${diseaseName}が${closedClasses}クラス閉鎖中です。先週比+${delta}クラスと増加傾向にあります。お子さんの体調管理と毎朝の検温を徹底してください。`;
+    return `${location}で${diseaseName}が${closedClasses}クラス閉鎖中です。先週比+${delta}クラスと増加傾向にあります。お子さんの体調管理と毎朝の検温を徹底してください。`;
   }
   if (delta < 0) {
-    return `東京都全体で${diseaseName}が${closedClasses}クラス閉鎖中です。先週（${weekAgoClasses}クラス）から${Math.abs(delta)}クラス減少しており、改善傾向にあります。`;
+    return `${location}で${diseaseName}が${closedClasses}クラス閉鎖中です。先週（${weekAgoClasses}クラス）から${Math.abs(delta)}クラス減少しており、改善傾向にあります。`;
   }
-  return `東京都全体で${diseaseName}が${closedClasses}クラス閉鎖中です。先週から横ばいの状況が続いています。登校前に体調確認を行ってください。`;
+  return `${location}で${diseaseName}が${closedClasses}クラス閉鎖中です。先週から横ばいの状況が続いています。登校前に体調確認を行ってください。`;
 }
 
 
-export function SchoolClosureModal({ entry, district, onClose }: Props) {
+export function SchoolClosureModal({ entry, district, prefName, onClose }: Props) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
 
   if (!entry) return null;
 
+  const location = prefName ?? "東京都全体";
   const delta = entry.closedClasses - entry.weekAgoClasses;
   const dotColor =
     entry.closedClasses >= 3 ? colors.level3 :
@@ -396,19 +398,21 @@ export function SchoolClosureModal({ entry, district, onClose }: Props) {
             </View>
           </View>
 
-          {/* Line chart — 8 week trend */}
-          <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <View style={styles.sectionHeader}>
-              <Feather name="trending-up" size={14} color={colors.mutedForeground} />
-              <Text style={[styles.sectionTitle, { color: colors.mutedForeground }]}>
-                過去8週間のトレンド（東京都全体）
-              </Text>
+          {/* Line chart — 8 week trend (東京都のみ) */}
+          {entry.weeklyHistory.length > 0 && (
+            <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <View style={styles.sectionHeader}>
+                <Feather name="trending-up" size={14} color={colors.mutedForeground} />
+                <Text style={[styles.sectionTitle, { color: colors.mutedForeground }]}>
+                  過去8週間のトレンド（東京都全体）
+                </Text>
+              </View>
+              <TrendLineChart
+                history={entry.weeklyHistory}
+                lastUpdated={SCHOOL_CLOSURES.lastUpdated}
+              />
             </View>
-            <TrendLineChart
-              history={entry.weeklyHistory}
-              lastUpdated={SCHOOL_CLOSURES.lastUpdated}
-            />
-          </View>
+          )}
 
           {/* Summary text */}
           <View style={[styles.section, { backgroundColor: colors.accent, borderColor: colors.border }]}>
@@ -417,7 +421,7 @@ export function SchoolClosureModal({ entry, district, onClose }: Props) {
               <Text style={[styles.sectionTitle, { color: colors.primary }]}>状況サマリー</Text>
             </View>
             <Text style={[styles.summaryText, { color: colors.foreground }]}>
-              {getSummaryText(entry)}
+              {getSummaryText(entry, location)}
             </Text>
           </View>
 
@@ -446,7 +450,7 @@ export function SchoolClosureModal({ entry, district, onClose }: Props) {
 
             <TouchableOpacity
               style={[styles.linkRow, { borderTopColor: colors.border }]}
-              onPress={() => Linking.openURL(SCHOOL_CLOSURES.sourceUrl)}
+              onPress={() => Linking.openURL("https://www.gakkohoken.jp/system_information/")}
               activeOpacity={0.7}
             >
               <View style={[styles.linkIcon, { backgroundColor: colors.muted }]}>
@@ -454,63 +458,15 @@ export function SchoolClosureModal({ entry, district, onClose }: Props) {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.linkTitle, { color: colors.foreground }]}>
-                  東京都 学級閉鎖状況
+                  学校等欠席者・感染症情報システム
                 </Text>
                 <Text style={[styles.linkSub, { color: colors.mutedForeground }]}>
-                  東京都福祉保健局 公式ページ
+                  日本学校保健会（JSSH）公式
                 </Text>
               </View>
               <Feather name="chevron-right" size={15} color={colors.border} />
             </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.linkRow, { borderTopColor: colors.border }]}
-              onPress={() => Linking.openURL(SCHOOL_CLOSURES.tableauUrl)}
-              activeOpacity={0.7}
-            >
-              <View style={[styles.linkIcon, { backgroundColor: colors.muted }]}>
-                <Feather name="bar-chart" size={14} color={colors.primary} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.linkTitle, { color: colors.foreground }]}>
-                  週次データ（Tableau）
-                </Text>
-                <Text style={[styles.linkSub, { color: colors.mutedForeground }]}>
-                  疾患別・週別の詳細グラフ
-                </Text>
-              </View>
-              <Feather name="chevron-right" size={15} color={colors.border} />
-            </TouchableOpacity>
-
-            {district && (
-              <TouchableOpacity
-                style={[styles.linkRow, { borderTopColor: colors.border }]}
-                onPress={() =>
-                  Linking.openURL(
-                    `https://www.google.com/maps/search/${encodeURIComponent(district.name + " 小学校 中学校")}`
-                  )
-                }
-                activeOpacity={0.7}
-              >
-                <View style={[styles.linkIcon, { backgroundColor: colors.muted }]}>
-                  <Feather name="map-pin" size={14} color={colors.primary} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.linkTitle, { color: colors.foreground }]}>
-                    {district.name}の学校一覧
-                  </Text>
-                  <Text style={[styles.linkSub, { color: colors.mutedForeground }]}>
-                    地図で近くの学校を確認
-                  </Text>
-                </View>
-                <Feather name="chevron-right" size={15} color={colors.border} />
-              </TouchableOpacity>
-            )}
           </View>
-
-          <Text style={[styles.footnote, { color: colors.mutedForeground }]}>
-            ※ 学級閉鎖データは東京都全体の集計値です。区市町村別の内訳は公開されていません。
-          </Text>
         </ScrollView>
       </View>
     </Modal>
