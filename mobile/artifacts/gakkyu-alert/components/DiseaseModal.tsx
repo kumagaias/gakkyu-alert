@@ -61,15 +61,25 @@ function TrendLineChart({ history, current, level }: { history: number[]; curren
 
   return (
     <Svg width={CHART_W} height={CHART_H}>
-      {/* Y軸ガイドライン */}
-      {[0, 0.5, 1].map((r) => (
-        <Line
-          key={r}
-          x1={PAD.left} y1={PAD.top + innerH * (1 - r)}
-          x2={CHART_W - PAD.right} y2={PAD.top + innerH * (1 - r)}
-          stroke={colors.border} strokeWidth={0.5}
-        />
-      ))}
+      {/* Y軸ガイドライン + ラベル */}
+      {[0, 0.5, 1].map((r) => {
+        const yPos = PAD.top + innerH * (1 - r);
+        const labelVal = maxVal * r;
+        const label = labelVal === 0 ? "0" : labelVal >= 10 ? labelVal.toFixed(0) : labelVal.toFixed(1);
+        return (
+          <React.Fragment key={r}>
+            <Line
+              x1={PAD.left} y1={yPos}
+              x2={CHART_W - PAD.right} y2={yPos}
+              stroke={colors.border} strokeWidth={0.5}
+            />
+            <SvgText
+              x={PAD.left - 4} y={yPos + 3.5}
+              textAnchor="end" fontSize={9} fill={colors.mutedForeground}
+            >{label}</SvgText>
+          </React.Fragment>
+        );
+      })}
       {/* 今週の縦線 */}
       <Line
         x1={xOf(4)} y1={PAD.top}
