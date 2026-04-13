@@ -10,7 +10,7 @@
  *   4. device.alertLevel <= 当日レベル のデバイスに Expo Push API で通知を送信
  */
 
-import { CLOSURE_DISEASES, type ClosureEntry } from "../lib/tableau.js";
+import { ALL_CLOSURE_DISEASES, type ClosureEntry } from "../lib/tableau.js";
 import { getLatestSnapshot, queryAllDevices } from "../lib/dynamodb.js";
 import { logger } from "../lib/logger.js";
 
@@ -60,7 +60,7 @@ function todayJst(): string {
  *   level 3: いずれかの疾患が alertThreshold 以上
  */
 function computeAlertLevel(entries: ClosureEntry[]): 1 | 2 | 3 {
-  const isHigh = CLOSURE_DISEASES.some((d) => {
+  const isHigh = ALL_CLOSURE_DISEASES.some((d) => {
     const e = entries.find((en) => en.diseaseId === d.diseaseId);
     return (e?.closedClasses ?? 0) >= d.alertThreshold;
   });

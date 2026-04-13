@@ -10,7 +10,7 @@ import {
   BedrockRuntimeClient,
   InvokeModelCommand,
 } from "@aws-sdk/client-bedrock-runtime";
-import { fetchAllClosures, type ClosureEntry } from "../lib/tableau.js";
+import { fetchAllClosures, fetchExtraClosures, type ClosureEntry } from "../lib/tableau.js";
 import { putSnapshot, getSnapshotByKey, getLatestSnapshot } from "../lib/dynamodb.js";
 import { logger } from "../lib/logger.js";
 
@@ -105,8 +105,12 @@ interface DiseaseStatusSnap {
 export const handler = async (): Promise<void> => {
   logger.info("学級閉鎖データ収集 開始");
 
-  const { entries, fetchedAt } = await fetchAllClosures();
-  logger.info({ count: entries.length }, "Tableau CSV 取得完了");
+  const [{ entries: mainEntries, fetchedAt }, { entries: extraEntries }] = await Promise.all([
+    fetchAllClosures(),
+    fetchExtraClosures(),
+  ]);
+  const entries = [...mainEntries, ...extraEntries];
+  logger.info({ count: entries.length }, "Tableau CSV 取得完了（既存 + 追加疾患）");
 
   const bedrock = new BedrockRuntimeClient({
     region: process.env.AWS_REGION ?? "ap-northeast-1",
