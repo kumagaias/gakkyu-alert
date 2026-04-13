@@ -1,6 +1,7 @@
 import React from "react";
 import {
   Dimensions,
+  Linking,
   Modal,
   Platform,
   ScrollView,
@@ -266,6 +267,24 @@ export function DiseaseModal({ disease, onClose }: Props) {
           */}
           </View>
 
+          {/* Related links */}
+          <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border, gap: 0, padding: 0, overflow: "hidden" }]}>
+            <TouchableOpacity
+              style={[styles.linkRow, { borderBottomColor: colors.border }]}
+              onPress={() => Linking.openURL("https://www.jihs.go.jp/")}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.linkIcon, { backgroundColor: colors.level1Bg }]}>
+                <Feather name="activity" size={14} color={colors.level1} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.linkTitle, { color: colors.foreground }]}>感染症週報（IDWR）</Text>
+                <Text style={[styles.linkSub, { color: colors.mutedForeground }]}>国立健康・危機管理研究機構（JIHS）</Text>
+              </View>
+              <Feather name="external-link" size={14} color={colors.mutedForeground} />
+            </TouchableOpacity>
+          </View>
+
           {/* Disclaimer */}
           <Text style={[styles.disclaimer, { color: colors.mutedForeground }]}>
             ※ 出席停止の規定は学校保健安全法および保育所における感染症対策ガイドラインに基づく一般的な目安です。正確な規定はお子さまの通園・通学先の施設にご確認ください。
@@ -449,5 +468,27 @@ const styles = StyleSheet.create({
     textAlign: "center",
     paddingHorizontal: 8,
     opacity: 0.7,
+  },
+  linkRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 13,
+  },
+  linkIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  linkTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  linkSub: {
+    fontSize: 11,
+    marginTop: 1,
   },
 });
