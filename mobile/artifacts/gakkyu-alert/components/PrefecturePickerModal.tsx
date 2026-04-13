@@ -4,6 +4,7 @@ import {
   Animated,
   Easing,
   Modal,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -135,7 +136,8 @@ export function PrefecturePickerModal({ visible, title, selectedId, onClose, onS
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={handleClose}>
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.outer, { backgroundColor: colors.background }]}>
+      <View style={styles.container}>
         <View style={[styles.handle, { backgroundColor: colors.border }]} />
 
         <View style={[styles.header, { borderBottomColor: colors.border }]}>
@@ -269,12 +271,26 @@ export function PrefecturePickerModal({ visible, title, selectedId, onClose, onS
           </View>
         )}
       </View>
+      </View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingTop: 8 },
+  outer: {
+    flex: 1,
+    ...(Platform.OS === "web" && {
+      alignItems: "center" as const,
+    }),
+  },
+  container: {
+    flex: 1,
+    paddingTop: 8,
+    ...(Platform.OS === "web" && {
+      maxWidth: 680,
+      width: "100%",
+    }),
+  },
   handle: { width: 36, height: 4, borderRadius: 2, alignSelf: "center", marginBottom: 12 },
   header: {
     flexDirection: "row",
