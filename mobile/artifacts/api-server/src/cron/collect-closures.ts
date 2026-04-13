@@ -60,7 +60,8 @@ async function getOrGenerateOutlook(
 ): Promise<string> {
   const hash = historyHash(entry.weeklyHistory);
   const sentinelPart = perSentinel !== null ? `|s${perSentinel.toFixed(2)}` : "";
-  const cacheKey = `${entry.diseaseId}#${hash}${sentinelPart}`;
+  // 今週の閉鎖クラス数もキャッシュキーに含め、0 に変化した場合も正しく再生成する
+  const cacheKey = `${entry.diseaseId}#${hash}|c${entry.closedClasses}${sentinelPart}`;
 
   const cached = await getSnapshotByKey<{ outlook: string }>(
     "CLOSURE_OUTLOOK_CACHE",
@@ -81,7 +82,8 @@ async function getOrGenerateOutlook(
 
   const prompt =
     `東京都の${entry.diseaseName}による学級閉鎖について、過去8週のデータから来週の見通しを保護者向けに1〜2文で予測してください。
-過去8週の閉鎖クラス数（古い順）: ${entry.weeklyHistory.join(", ")}${sentinelLine}
+過去8週の閉鎖クラス数（古い順）: ${entry.weeklyHistory.join(", ")}
+今週の閉鎖クラス数: ${entry.closedClasses}${sentinelLine}
 現在: ${month}月（${season}）
 出力は日本語の1〜2文のみ。増加・減少・横ばいなどの傾向を定性的に。具体的な数値の断言は避ける。`;
 
