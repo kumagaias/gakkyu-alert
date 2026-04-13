@@ -44,13 +44,16 @@ export function useStatusData(): StatusData {
   const diseases: Disease[] = DISEASES.map((d) => {
     const api = data.diseases.find((ad) => ad.id === d.id);
     if (!api) return d;
+    const weeklyHistory = api.weeklyHistory.length >= 5
+      ? api.weeklyHistory
+      : [0, 0, 0, 0, 0, api.twoWeeksAgoCount, api.lastWeekCount, api.currentCount];
     return {
       ...d,
       currentLevel: api.currentLevel as EpidemicLevel,
       currentCount: api.currentCount,
       lastWeekCount: api.lastWeekCount,
       twoWeeksAgoCount: api.twoWeeksAgoCount,
-      weeklyHistory: api.weeklyHistory,
+      weeklyHistory,
       aiComment: api.aiComment || d.aiComment,
       aiOutlook: api.aiOutlook || undefined,
     };
