@@ -61,7 +61,15 @@ export function DistrictInfoPanel({ district, showFootnote = true }: Props) {
     ? DISEASES.map((d) => {
         const pd = district.diseases!.find((dd) => dd.id === d.id);
         if (!pd) return { ...d, currentLevel: 0 as const, currentCount: 0, lastWeekCount: 0, twoWeeksAgoCount: 0, weeklyHistory: [], aiComment: "" };
-        return { ...d, currentLevel: pd.level as 0 | 1 | 2 | 3, currentCount: pd.perSentinel, lastWeekCount: 0, twoWeeksAgoCount: 0, weeklyHistory: [], aiComment: "" };
+        return {
+          ...d,
+          currentLevel: pd.level as 0 | 1 | 2 | 3,
+          currentCount: pd.perSentinel,
+          lastWeekCount: pd.lastWeekCount ?? 0,
+          twoWeeksAgoCount: pd.twoWeeksAgoCount ?? 0,
+          weeklyHistory: pd.weeklyHistory ?? [],
+          aiComment: pd.aiComment ?? "",
+        };
       })
     : tokyoDiseases;
 

@@ -57,7 +57,7 @@ router.get("/status", async (_req, res) => {
         id: p.id,
         level: (p.level ?? 0) as number,
         aiSummary: (p.aiSummary ?? "") as string,
-        diseases: (p.diseases ?? []) as Array<{ id: string; perSentinel: number; level: number }>,
+        diseases: (p.diseases ?? []) as Array<{ id: string; perSentinel: number; level: number; weeklyHistory: number[]; lastWeekCount: number; twoWeeksAgoCount: number; aiComment: string }>,
       })
     );
 
