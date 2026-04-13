@@ -1,9 +1,11 @@
 name: Deploy Lambda
 
-# main へのマージ時、Lambda に関連するファイルが変更された場合に実行
+# dev/main へのマージ時、Lambda に関連するファイルが変更された場合に実行
+# dev → gakkyu-alert-*-dev Lambda
+# main → gakkyu-alert-*-prd Lambda
 on:
   push:
-    branches: [main]
+    branches: [dev, main]
     paths:
       - 'mobile/artifacts/api-server/**'
       - 'mobile/lib/**'
@@ -19,10 +21,11 @@ permissions:
 env:
   AWS_REGION: ap-northeast-1
   AWS_ACCOUNT_ID: '843925270284'
+  ENVIRONMENT: ${{ github.ref_name == 'main' && 'prd' || 'dev' }}
 
 jobs:
   deploy:
-    name: ${{ matrix.handler }}
+    name: ${{ matrix.handler }} (${{ github.ref_name == 'main' && 'prd' || 'dev' }})
     runs-on: ubuntu-latest
 
     strategy:
@@ -30,17 +33,9 @@ jobs:
       matrix:
         include:
           - handler: api
-            ecr_repo: gakkyu-alert-api-dev
-            lambda_name: gakkyu-alert-api-dev
           - handler: collect-closures
-            ecr_repo: gakkyu-alert-collect-closures-dev
-            lambda_name: gakkyu-alert-collect-closures-dev
           - handler: collect-sentinel
-            ecr_repo: gakkyu-alert-collect-sentinel-dev
-            lambda_name: gakkyu-alert-collect-sentinel-dev
           - handler: send-alerts
-            ecr_repo: gakkyu-alert-send-alerts-dev
-            lambda_name: gakkyu-alert-send-alerts-dev
 
     steps:
       - name: Checkout
@@ -68,20 +63,20 @@ jobs:
           push: true
           build-args: HANDLER=${{ matrix.handler }}
           tags: |
-            ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ matrix.ecr_repo }}:latest
-            ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ matrix.ecr_repo }}:${{ github.sha }}
+            ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/gakkyu-alert-${{ matrix.handler }}-${{ env.ENVIRONMENT }}:latest
+            ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/gakkyu-alert-${{ matrix.handler }}-${{ env.ENVIRONMENT }}:${{ github.sha }}
           # Lambda は Docker manifest v2 のみ対応。OCI 形式は拒否されるため無効化
           provenance: false
           # ハンドラーごとにキャッシュスコープを分けて干渉を防ぐ
-          cache-from: type=gha,scope=${{ matrix.handler }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.handler }}
+          cache-from: type=gha,scope=${{ matrix.handler }}-${{ env.ENVIRONMENT }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.handler }}-${{ env.ENVIRONMENT }}
 
       # Lambda のコードを新しいイメージに更新
       # Terraform の ignore_changes で管理外のため AWS CLI で直接更新する
       - name: Update Lambda function code
         run: |
           aws lambda update-function-code \
-            --function-name "${{ matrix.lambda_name }}" \
-            --image-uri "${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ matrix.ecr_repo }}:${{ github.sha }}" \
+            --function-name "gakkyu-alert-${{ matrix.handler }}-${{ env.ENVIRONMENT }}" \
+            --image-uri "${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/gakkyu-alert-${{ matrix.handler }}-${{ env.ENVIRONMENT }}:${{ github.sha }}" \
             --query '{FunctionName:FunctionName,CodeSize:CodeSize,LastModified:LastModified}' \
             --output table

@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import {
-  Linking,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -8,36 +7,12 @@ import {
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useColors } from "@/hooks/useColors";
-import { DISEASES, PREF_IDSC_URLS, type Disease, type District } from "@/constants/data";
+import { DISEASES, type Disease, type District } from "@/constants/data";
 import { useStatusData } from "@/hooks/useStatusData";
 import { EpidemicLevelCard } from "@/components/EpidemicLevelCard";
 import { DiseaseRow } from "@/components/DiseaseRow";
 import { DiseaseModal } from "@/components/DiseaseModal";
 import { SchoolClosureCard } from "@/components/SchoolClosureCard";
-
-const NIID_LINK = {
-  id: "niid",
-  icon: "globe" as const,
-  title: "国立感染症研究所（NIID）",
-  sub: "全国の感染症発生動向・IDWR",
-  url: "https://www.niid.go.jp/niid/ja/",
-};
-
-function getRelatedLinks(districtId: string) {
-  const idscUrl = PREF_IDSC_URLS[districtId];
-  const links = [];
-  if (idscUrl) {
-    links.push({
-      id: "idsc",
-      icon: "activity" as const,
-      title: "感染症情報センター",
-      sub: "最新の感染症発生動向データ",
-      url: idscUrl,
-    });
-  }
-  links.push(NIID_LINK);
-  return links;
-}
 
 interface Props {
   district: District;
@@ -61,7 +36,19 @@ export function DistrictInfoPanel({ district, showFootnote = true }: Props) {
     ? DISEASES.map((d) => {
         const pd = district.diseases!.find((dd) => dd.id === d.id);
         if (!pd) return { ...d, currentLevel: 0 as const, currentCount: 0, lastWeekCount: 0, twoWeeksAgoCount: 0, weeklyHistory: [], aiComment: "" };
-        return { ...d, currentLevel: pd.level as 0 | 1 | 2 | 3, currentCount: pd.perSentinel, lastWeekCount: 0, twoWeeksAgoCount: 0, weeklyHistory: [], aiComment: "" };
+        const rawHistory = pd.weeklyHistory ?? [];
+        const weeklyHistory = rawHistory.length >= 5
+          ? rawHistory
+          : [0, 0, 0, 0, 0, pd.twoWeeksAgoCount ?? 0, pd.lastWeekCount ?? 0, pd.perSentinel];
+        return {
+          ...d,
+          currentLevel: pd.level as 0 | 1 | 2 | 3,
+          currentCount: pd.perSentinel,
+          lastWeekCount: pd.lastWeekCount ?? 0,
+          twoWeeksAgoCount: pd.twoWeeksAgoCount ?? 0,
+          weeklyHistory,
+          aiComment: pd.aiComment ?? "",
+        };
       })
     : tokyoDiseases;
 
@@ -151,39 +138,6 @@ export function DistrictInfoPanel({ district, showFootnote = true }: Props) {
           </Text>
         )}
 
-        {/* Related links */}
-        <View style={styles.sectionHeader}>
-          <Feather name="link" size={16} color={colors.primary} />
-          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>関連リンク</Text>
-        </View>
-
-        <View style={[styles.linksCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          {getRelatedLinks(district.id).map((link, i) => (
-            <TouchableOpacity
-              key={link.id}
-              style={[
-                styles.linkRow,
-                { borderTopColor: colors.border },
-                i === 0 && { borderTopWidth: 0 },
-              ]}
-              onPress={() => Linking.openURL(link.url)}
-              activeOpacity={0.7}
-            >
-              <View style={[styles.linkIcon, { backgroundColor: colors.muted }]}>
-                <Feather name={link.icon} size={14} color={colors.primary} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.linkTitle, { color: colors.foreground }]} numberOfLines={1}>
-                  {link.title}
-                </Text>
-                <Text style={[styles.linkSub, { color: colors.mutedForeground }]} numberOfLines={1}>
-                  {link.sub}
-                </Text>
-              </View>
-              <Feather name="chevron-right" size={14} color={colors.border} />
-            </TouchableOpacity>
-          ))}
-        </View>
       </View>
 
       {/* Disease detail modal */}

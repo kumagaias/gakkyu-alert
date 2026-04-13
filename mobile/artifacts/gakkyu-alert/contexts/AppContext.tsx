@@ -19,8 +19,6 @@ export interface Child {
 export interface NotificationSettings {
   enabled: boolean;
   alertLevel: 2 | 3;
-  weeklyDay: number;
-  weeklyHour: number;
 }
 
 interface AppState {
@@ -57,8 +55,6 @@ const DEFAULT_STATE: AppState = {
   notifications: {
     enabled: false,
     alertLevel: 2,
-    weeklyDay: 1,
-    weeklyHour: 7,
   },
   hasAccount: false,
 };

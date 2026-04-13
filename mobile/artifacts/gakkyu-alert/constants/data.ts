@@ -29,9 +29,13 @@ export interface Disease {
 
 /** 都道府県別疾患内訳 (API から取得) */
 export interface PrefectureDisease {
-  id: string;           // 疾患ID (例: "flu-a")
-  perSentinel: number;  // 定点あたり患者数
+  id: string;              // 疾患ID (例: "flu-a")
+  perSentinel: number;     // 定点あたり患者数
   level: EpidemicLevel;
+  weeklyHistory?: number[]; // 過去8週の定点当り患者数（古い順）
+  lastWeekCount?: number;
+  twoWeeksAgoCount?: number;
+  aiComment?: string;
 }
 
 /** 都道府県別・疾患別閉鎖クラス数 (学校等欠席者・感染症情報システム) */

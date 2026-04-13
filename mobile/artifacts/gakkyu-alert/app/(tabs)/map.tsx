@@ -149,13 +149,32 @@ function buildMapHTML(
       .addTo(map);
 
     // outer scope so message handler can access after processGeoJSON
+    // prefLayers stores LatLngBounds (not layer) to avoid island-heavy MultiPolygon bounds
     var prefLayers = {};
     var geojsonLayer = null;
+
+    // MultiPolygon の場合、面積最大のポリゴン（本土）の bounds を返す
+    function getMainlandBounds(feature) {
+      var geom = feature.geometry;
+      if (geom.type !== 'MultiPolygon') {
+        return L.latLngBounds(geom.coordinates[0].map(function(c) { return [c[1], c[0]]; }));
+      }
+      var best = null, bestArea = 0;
+      geom.coordinates.forEach(function(poly) {
+        var pts = poly[0];
+        var lats = pts.map(function(c) { return c[1]; });
+        var lons = pts.map(function(c) { return c[0]; });
+        var area = (Math.max.apply(null, lats) - Math.min.apply(null, lats)) *
+                   (Math.max.apply(null, lons) - Math.min.apply(null, lons));
+        if (area > bestArea) { bestArea = area; best = pts; }
+      });
+      return L.latLngBounds((best || geom.coordinates[0][0]).map(function(c) { return [c[1], c[0]]; }));
+    }
 
     function doFit() {
       map.invalidateSize(true);
       if (HOME_PREF && prefLayers[HOME_PREF]) {
-        map.fitBounds(prefLayers[HOME_PREF].getBounds(), { padding: [20, 20], maxZoom: 10 });
+        map.fitBounds(prefLayers[HOME_PREF], { padding: [20, 20], maxZoom: 10 });
       } else if (geojsonLayer) {
         map.fitBounds(geojsonLayer.getBounds(), { padding: [10, 10] });
       }
@@ -191,7 +210,7 @@ function buildMapHTML(
           var prefId = getPrefId(f.properties);
           var name = getPrefName(f.properties);
           var lv = getLevel(prefId);
-          if (prefId !== null) { prefLayers[prefId] = lyr; }
+          if (prefId !== null) { prefLayers[prefId] = getMainlandBounds(f); }
           lyr.on('click', function(e) {
             L.DomEvent.stopPropagation(e);
             send({ type: 'prefClick', id: prefId, name: name });
@@ -371,8 +390,10 @@ export default function MapScreen() {
   const [selectedDistrict, setSelectedDistrict] = useState<District | null>(null);
   const [mapError, setMapError] = useState(false);
 
-  // 居住地区ID → 都道府県ID（現状は東京都固定、将来的に全都道府県対応）
-  const homePrefId = homeDistrictId ? "tokyo" : null;
+  // 居住地区IDが都道府県IDかどうか確認（東京区市は district ID → "tokyo" に変換）
+  const homePrefId = homeDistrictId
+    ? (PREFECTURES.some((p) => p.id === homeDistrictId) ? homeDistrictId : "tokyo")
+    : null;
 
   const topPad = Platform.OS === "web" ? 0 : insets.top;
   const botPad = Platform.OS === "web" ? 34 + 84 : insets.bottom + 84;

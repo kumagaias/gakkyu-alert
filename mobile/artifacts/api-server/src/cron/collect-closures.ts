@@ -1,5 +1,5 @@
 /**
- * Lambda cron ハンドラー — 学級閉鎖データ収集 + AI 来週見通し生成
+ * Lambda cron ハンドラー — 学級閉鎖データ収集 + AI 来週見通し生成（定点サーベイランスデータ連携）
  *
  * トリガー: EventBridge 毎日 6:00 JST (cron(0 21 * * ? *))
  * データ: Tableau CSV → gakkyu-snapshots (pk=CLOSURE, sk=<YYYY-MM-DD>)
@@ -10,8 +10,8 @@ import {
   BedrockRuntimeClient,
   InvokeModelCommand,
 } from "@aws-sdk/client-bedrock-runtime";
-import { fetchAllClosures, type ClosureEntry } from "../lib/tableau.js";
-import { putSnapshot, getSnapshotByKey } from "../lib/dynamodb.js";
+import { fetchAllClosures, fetchExtraClosures, type ClosureEntry } from "../lib/tableau.js";
+import { putSnapshot, getSnapshotByKey, getLatestSnapshot } from "../lib/dynamodb.js";
 import { logger } from "../lib/logger.js";
 
 const NOVA_MODEL = "amazon.nova-lite-v1:0";
@@ -55,10 +55,13 @@ function historyHash(history: number[]): string {
 async function getOrGenerateOutlook(
   client: BedrockRuntimeClient,
   entry: ClosureEntry,
-  today: Date
+  today: Date,
+  perSentinel: number | null,
 ): Promise<string> {
   const hash = historyHash(entry.weeklyHistory);
-  const cacheKey = `${entry.diseaseId}#${hash}`;
+  const sentinelPart = perSentinel !== null ? `|s${perSentinel.toFixed(2)}` : "";
+  // 今週の閉鎖クラス数もキャッシュキーに含め、0 に変化した場合も正しく再生成する
+  const cacheKey = `${entry.diseaseId}#${hash}|c${entry.closedClasses}${sentinelPart}`;
 
   const cached = await getSnapshotByKey<{ outlook: string }>(
     "CLOSURE_OUTLOOK_CACHE",
@@ -73,9 +76,14 @@ async function getOrGenerateOutlook(
     month >= 6  && month <= 8  ? "夏（夏休み・感染症落ち着き期）" :
     "秋（感染症増加準備期）";
 
+  const sentinelLine = perSentinel !== null
+    ? `\n定点あたり患者数（東京都・今週）: ${perSentinel.toFixed(2)}人`
+    : "";
+
   const prompt =
     `東京都の${entry.diseaseName}による学級閉鎖について、過去8週のデータから来週の見通しを保護者向けに1〜2文で予測してください。
 過去8週の閉鎖クラス数（古い順）: ${entry.weeklyHistory.join(", ")}
+今週の閉鎖クラス数: ${entry.closedClasses}${sentinelLine}
 現在: ${month}月（${season}）
 出力は日本語の1〜2文のみ。増加・減少・横ばいなどの傾向を定性的に。具体的な数値の断言は避ける。`;
 
@@ -90,24 +98,40 @@ async function getOrGenerateOutlook(
 // Lambda ハンドラー
 // ---------------------------------------------------------------------------
 
+interface DiseaseStatusSnap {
+  diseases: Array<{ id: string; currentCount: number }>;
+}
+
 export const handler = async (): Promise<void> => {
   logger.info("学級閉鎖データ収集 開始");
 
-  const { entries, fetchedAt } = await fetchAllClosures();
-  logger.info({ count: entries.length }, "Tableau CSV 取得完了");
+  const [{ entries: mainEntries, fetchedAt }, { entries: extraEntries }] = await Promise.all([
+    fetchAllClosures(),
+    fetchExtraClosures(),
+  ]);
+  const entries = [...mainEntries, ...extraEntries];
+  logger.info({ count: entries.length }, "Tableau CSV 取得完了（既存 + 追加疾患）");
 
   const bedrock = new BedrockRuntimeClient({
     region: process.env.AWS_REGION ?? "ap-northeast-1",
   });
   const today = new Date(fetchedAt);
 
+  // 最新の定点サーベイランスデータ（IDWR）を取得して AI プロンプトに活用
+  const diseaseSnap = await getLatestSnapshot<DiseaseStatusSnap>("DISEASE_STATUS").catch(() => null);
+  const sentinelMap = new Map<string, number>(
+    (diseaseSnap?.diseases ?? []).map((d) => [d.id, d.currentCount])
+  );
+  logger.info({ diseaseCount: sentinelMap.size }, "定点サーベイランスデータ取得完了");
+
   const entriesWithOutlook: (ClosureEntry & { aiOutlook: string })[] = [];
   for (const entry of entries) {
     let aiOutlook = "";
     // データがある週だけ生成 (全週 0 はスキップ)
     if (entry.weeklyHistory.some((v) => v > 0)) {
+      const perSentinel = sentinelMap.get(entry.diseaseId) ?? null;
       try {
-        aiOutlook = await getOrGenerateOutlook(bedrock, entry, today);
+        aiOutlook = await getOrGenerateOutlook(bedrock, entry, today, perSentinel);
       } catch (err) {
         logger.warn({ diseaseId: entry.diseaseId, err }, "来週見通し生成失敗 — スキップ");
       }

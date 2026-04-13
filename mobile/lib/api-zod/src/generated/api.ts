@@ -101,6 +101,17 @@ export const GetStatusResponse = zod.object({
                     .number()
                     .min(getStatusResponsePrefecturesItemDiseasesItemLevelMin)
                     .max(getStatusResponsePrefecturesItemDiseasesItemLevelMax),
+                  weeklyHistory: zod
+                    .array(zod.number())
+                    .optional()
+                    .describe("過去8週の定点当り患者数（古い順）"),
+                  lastWeekCount: zod.number().optional(),
+                  twoWeeksAgoCount: zod.number().optional(),
+                  aiComment: zod
+                    .string()
+                    .optional()
+                    .describe("AI 生成コメント"),
+                  aiOutlook: zod.string().optional().describe("AI 生成見通し"),
                 })
                 .describe("都道府県別疾患内訳"),
             )
@@ -137,29 +148,12 @@ export const GetStatusResponse = zod.object({
 /**
  * @summary デバイス登録 / 設定同期
  */
-export const registerDeviceBodyWeeklyDayMin = 0;
-export const registerDeviceBodyWeeklyDayMax = 6;
-
-export const registerDeviceBodyWeeklyHourMin = 0;
-export const registerDeviceBodyWeeklyHourMax = 23;
-
 export const RegisterDeviceBody = zod.object({
   fcmToken: zod.string(),
   platform: zod.enum(["ios", "android", "web"]),
   homeDistrictId: zod.string(),
   extraDistrictIds: zod.array(zod.string()).optional(),
   alertLevel: zod.union([zod.literal(2), zod.literal(3)]),
-  weeklyEnabled: zod.boolean().optional(),
-  weeklyDay: zod
-    .number()
-    .min(registerDeviceBodyWeeklyDayMin)
-    .max(registerDeviceBodyWeeklyDayMax)
-    .optional(),
-  weeklyHour: zod
-    .number()
-    .min(registerDeviceBodyWeeklyHourMin)
-    .max(registerDeviceBodyWeeklyHourMax)
-    .optional(),
 });
 
 export const RegisterDeviceResponse = zod.object({

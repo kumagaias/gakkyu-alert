@@ -69,6 +69,14 @@ export interface PrefectureDisease {
    * @maximum 3
    */
   level: number;
+  /** 過去8週の定点当り患者数（古い順） */
+  weeklyHistory?: number[];
+  lastWeekCount?: number;
+  twoWeeksAgoCount?: number;
+  /** AI 生成コメント */
+  aiComment?: string;
+  /** AI 生成見通し */
+  aiOutlook?: string;
 }
 
 /**
@@ -147,17 +155,6 @@ export interface DeviceRegistration {
   homeDistrictId: string;
   extraDistrictIds?: string[];
   alertLevel: DeviceRegistrationAlertLevel;
-  weeklyEnabled?: boolean;
-  /**
-   * @minimum 0
-   * @maximum 6
-   */
-  weeklyDay?: number;
-  /**
-   * @minimum 0
-   * @maximum 23
-   */
-  weeklyHour?: number;
 }
 
 export interface DeviceRegistrationResult {

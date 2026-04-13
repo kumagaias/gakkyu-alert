@@ -1,6 +1,7 @@
 import React from "react";
 import {
   Dimensions,
+  Linking,
   Modal,
   Platform,
   ScrollView,
@@ -61,15 +62,25 @@ function TrendLineChart({ history, current, level }: { history: number[]; curren
 
   return (
     <Svg width={CHART_W} height={CHART_H}>
-      {/* Y軸ガイドライン */}
-      {[0, 0.5, 1].map((r) => (
-        <Line
-          key={r}
-          x1={PAD.left} y1={PAD.top + innerH * (1 - r)}
-          x2={CHART_W - PAD.right} y2={PAD.top + innerH * (1 - r)}
-          stroke={colors.border} strokeWidth={0.5}
-        />
-      ))}
+      {/* Y軸ガイドライン + ラベル */}
+      {[0, 0.5, 1].map((r) => {
+        const yPos = PAD.top + innerH * (1 - r);
+        const labelVal = maxVal * r;
+        const label = labelVal === 0 ? "0" : labelVal >= 10 ? labelVal.toFixed(0) : labelVal.toFixed(1);
+        return (
+          <React.Fragment key={r}>
+            <Line
+              x1={PAD.left} y1={yPos}
+              x2={CHART_W - PAD.right} y2={yPos}
+              stroke={colors.border} strokeWidth={0.5}
+            />
+            <SvgText
+              x={PAD.left - 4} y={yPos + 3.5}
+              textAnchor="end" fontSize={9} fill={colors.mutedForeground}
+            >{label}</SvgText>
+          </React.Fragment>
+        );
+      })}
       {/* 今週の縦線 */}
       <Line
         x1={xOf(4)} y1={PAD.top}
@@ -156,7 +167,8 @@ export function DiseaseModal({ disease, onClose }: Props) {
 
   return (
     <Modal visible animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.outer, { backgroundColor: colors.background }]}>
+      <View style={styles.container}>
         <View style={[styles.handle, { backgroundColor: colors.border }]} />
 
         <View style={[styles.headerRow, { borderBottomColor: colors.border }]}>
@@ -255,24 +267,48 @@ export function DiseaseModal({ disease, onClose }: Props) {
           */}
           </View>
 
+          {/* Related links */}
+          <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border, gap: 0, padding: 0, overflow: "hidden" }]}>
+            <TouchableOpacity
+              style={[styles.linkRow, { borderBottomColor: colors.border }]}
+              onPress={() => Linking.openURL("https://www.jihs.go.jp/")}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.linkIcon, { backgroundColor: colors.level1Bg }]}>
+                <Feather name="activity" size={14} color={colors.level1} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.linkTitle, { color: colors.foreground }]}>感染症週報（IDWR）</Text>
+                <Text style={[styles.linkSub, { color: colors.mutedForeground }]}>国立健康・危機管理研究機構（JIHS）</Text>
+              </View>
+              <Feather name="external-link" size={14} color={colors.mutedForeground} />
+            </TouchableOpacity>
+          </View>
+
           {/* Disclaimer */}
           <Text style={[styles.disclaimer, { color: colors.mutedForeground }]}>
             ※ 出席停止の規定は学校保健安全法および保育所における感染症対策ガイドラインに基づく一般的な目安です。正確な規定はお子さまの通園・通学先の施設にご確認ください。
           </Text>
         </ScrollView>
       </View>
+      </View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  outer: {
+    flex: 1,
+    ...(Platform.OS === "web" && {
+      alignItems: "center" as const,
+    }),
+  },
   container: {
     flex: 1,
     paddingTop: 8,
     ...(Platform.OS === "web" && {
       maxWidth: 680,
       width: "100%",
-      alignSelf: "center" as const,
     }),
   },
   handle: {
@@ -432,5 +468,27 @@ const styles = StyleSheet.create({
     textAlign: "center",
     paddingHorizontal: 8,
     opacity: 0.7,
+  },
+  linkRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 13,
+  },
+  linkIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  linkTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  linkSub: {
+    fontSize: 11,
+    marginTop: 1,
   },
 });

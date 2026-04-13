@@ -206,9 +206,11 @@ export async function resolvePrefectureByGps(): Promise<GpsPrefResult> {
         { headers: { "User-Agent": "gakkyu-alert/1.0" } }
       );
       const data = await res.json();
+      // address.state が存在しない場合は display_name から都道府県を探す
       const prefName: string = data?.address?.state ?? "";
-      if (!prefName) return { type: "not_found" };
-      const pref = findPrefectureByName(prefName);
+      const pref = prefName
+        ? findPrefectureByName(prefName)
+        : PREFECTURES.find((p) => (data?.display_name as string | undefined)?.includes(p.name)) ?? null;
       if (!pref) return { type: "not_found" };
       return { type: "success", prefecture: pref };
     }

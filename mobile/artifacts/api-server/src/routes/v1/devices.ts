@@ -12,18 +12,12 @@ router.post("/devices", async (req, res) => {
     homeDistrictId,
     extraDistrictIds,
     alertLevel,
-    weeklyEnabled,
-    weeklyDay,
-    weeklyHour,
   } = req.body as {
     fcmToken: string;
     platform: string;
     homeDistrictId: string;
     extraDistrictIds?: string[];
     alertLevel: 2 | 3;
-    weeklyEnabled?: boolean;
-    weeklyDay?: number;
-    weeklyHour?: number;
   };
 
   if (!fcmToken || !platform || !homeDistrictId || alertLevel == null) {
@@ -37,9 +31,6 @@ router.post("/devices", async (req, res) => {
       homeDistrictId,
       extraDistrictIds: extraDistrictIds ?? [],
       alertLevel,
-      weeklyEnabled: weeklyEnabled ?? false,
-      weeklyDay: weeklyDay ?? 1,
-      weeklyHour: weeklyHour ?? 7,
     });
 
     res.json({ ok: true });
