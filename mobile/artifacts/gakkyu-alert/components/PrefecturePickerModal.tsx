@@ -155,7 +155,7 @@ export function PrefecturePickerModal({ visible, title, selectedId, onClose, onS
         </View>
 
         {showList ? (
-          <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 24 }} showsVerticalScrollIndicator={false}>
+          <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 24 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
             {groups.map((group) => (
               <View key={group.title}>
                 <Text style={[styles.groupHeader, { color: colors.mutedForeground, backgroundColor: colors.muted }]}>

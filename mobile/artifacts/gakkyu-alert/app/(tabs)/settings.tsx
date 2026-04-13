@@ -1,5 +1,7 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import {
+  Alert,
+  Keyboard,
   Modal,
   Platform,
   ScrollView,
@@ -71,9 +73,11 @@ function AddChildModal({
   const colors = useColors();
   const [nickname, setNickname] = useState(initial?.nickname ?? "");
   const [age, setAge] = useState(initial?.age?.toString() ?? "");
+  const ageInputRef = useRef<TextInput>(null);
 
   const save = () => {
     if (!nickname.trim() || !age) return;
+    Keyboard.dismiss();
     onSave({ nickname: nickname.trim(), age: parseInt(age) });
     setNickname("");
     setAge("");
@@ -88,7 +92,11 @@ function AddChildModal({
           <Text style={[styles.modalTitle, { color: colors.foreground }]}>
             {initial ? "お子さんを編集" : "お子さんを追加"}
           </Text>
-          <TouchableOpacity onPress={onClose} style={[styles.closeBtn, { backgroundColor: colors.muted }]}>
+          <TouchableOpacity
+            onPress={onClose}
+            style={[styles.closeBtn, { backgroundColor: colors.muted }]}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
             <Feather name="x" size={18} color={colors.mutedForeground} />
           </TouchableOpacity>
         </View>
@@ -101,17 +109,23 @@ function AddChildModal({
               onChangeText={setNickname}
               placeholder="例：たろう"
               placeholderTextColor={colors.mutedForeground}
+              returnKeyType="next"
+              onSubmitEditing={() => ageInputRef.current?.focus()}
+              blurOnSubmit={false}
             />
           </View>
           <View>
             <Text style={[styles.inputLabel, { color: colors.mutedForeground }]}>年齢</Text>
             <TextInput
+              ref={ageInputRef}
               style={[styles.input, { backgroundColor: colors.card, borderColor: colors.border, color: colors.foreground }]}
               value={age}
               onChangeText={setAge}
               placeholder="例：6"
               placeholderTextColor={colors.mutedForeground}
               keyboardType="number-pad"
+              returnKeyType="done"
+              onSubmitEditing={save}
             />
           </View>
           <TouchableOpacity
@@ -270,7 +284,20 @@ export default function SettingsScreen() {
             right={
               <Switch
                 value={notifications.enabled}
-                onValueChange={(v) => updateNotifications({ enabled: v })}
+                onValueChange={(v) => {
+                  if (v) {
+                    Alert.alert(
+                      "Push通知を有効にする",
+                      "学級閉鎖アラートをお届けするために、通知の許可が必要です。お住まいの地域の感染症情報をリアルタイムでお知らせします。\n\nデバイス識別子は通知配信のためのみ使用し、サーバーに送信されます。",
+                      [
+                        { text: "キャンセル", style: "cancel" },
+                        { text: "許可する", onPress: () => updateNotifications({ enabled: true }) },
+                      ]
+                    );
+                  } else {
+                    updateNotifications({ enabled: false });
+                  }
+                }}
                 trackColor={{ true: colors.primary, false: colors.border }}
               />
             }
@@ -541,6 +568,10 @@ const styles = StyleSheet.create({
   },
   iconBtn: {
     padding: 6,
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: "center",
+    justifyContent: "center",
   },
   addRow: {
     flexDirection: "row",

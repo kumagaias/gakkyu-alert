@@ -184,6 +184,7 @@ export function DiseaseModal({ disease, onClose }: Props) {
           style={{ flex: 1 }}
           contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 24 }]}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
           {/* Level badge */}
           <View

@@ -120,6 +120,11 @@ function buildMapHTML(
       }
     }
 
+    window.onerror = function(msg, url, line, col, err) {
+      send({ type: 'error', msg: String(err || msg) });
+      return true;
+    };
+
     function getPrefId(props) {
       // dataofjapan/land GeoJSON uses nam_ja
       return NAME_TO_ID[props['nam_ja']] || NAME_TO_ID[props['name']] || null;

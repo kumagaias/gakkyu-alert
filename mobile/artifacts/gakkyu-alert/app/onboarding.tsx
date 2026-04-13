@@ -4,6 +4,7 @@ import {
   Animated,
   Easing,
   Image,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
@@ -338,6 +339,11 @@ export default function OnboardingScreen() {
                 maxLength={8}
                 value={postalCode}
                 onChangeText={handlePostalChange}
+                returnKeyType="search"
+                onSubmitEditing={() => {
+                  Keyboard.dismiss();
+                  lookupPostal(postalCode);
+                }}
               />
               {postalLoading && <ActivityIndicator size="small" color={colors.primary} />}
             </View>

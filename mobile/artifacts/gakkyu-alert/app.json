@@ -2,6 +2,7 @@
   "expo": {
     "name": "がっきゅうアラート",
     "slug": "gakkyu-alert",
+    "description": "学級閉鎖・感染症情報をリアルタイムでお届けするアラートアプリ",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
