@@ -19,24 +19,24 @@ const SOURCES = [
     provider: "国立健康・危機管理研究機構（JIHS）",
     description:
       "全国の定点医療機関から報告される疾患別の患者数データ。インフルエンザ・COVID-19など10疾患の定点当たり患者数を都道府県別に集計しています。",
-    url: "https://id-info.jihs.go.jp/surveillance/idwr/provisional",
+    url: "https://www.jihs.go.jp/",
     icon: "activity",
-  },
-  {
-    title: "東京都感染症週報",
-    provider: "東京都立健康安全研究センター（TMIPH）",
-    description:
-      "東京都内の保健所ごとの感染症サーベイランスデータ。練馬区・杉並区・武蔵野市など地区レベルの流行状況の算出に使用しています。",
-    url: "https://survey.tmiph.metro.tokyo.lg.jp/epidinfo/dlwhc.do",
-    icon: "map-pin",
   },
   {
     title: "学校等欠席者・感染症情報システム",
     provider: "日本学校保健会（JSSH）",
     description:
       "全国の学校から報告される学級閉鎖・出席停止の情報。都道府県別の閉鎖クラス数の集計に使用しています。",
-    url: "https://www.gakkohoken.jp/special/archives/300",
+    url: "https://www.gakkohoken.jp/",
     icon: "book",
+  },
+  {
+    title: "東京都感染症週報",
+    provider: "東京都立健康安全研究センター（TMIPH）",
+    description:
+      "東京都内の保健所ごとの感染症サーベイランスデータ。練馬区・杉並区・武蔵野市など地区レベルの流行状況の算出に使用しています。",
+    url: "https://www.tmiph.metro.tokyo.lg.jp/",
+    icon: "map-pin",
   },
 ] as const;
 
