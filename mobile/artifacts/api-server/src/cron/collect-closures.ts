@@ -1,5 +1,5 @@
 /**
- * Lambda cron ハンドラー — 学級閉鎖データ収集 + AI 来週見通し生成
+ * Lambda cron ハンドラー — 学級閉鎖データ収集 + AI 来週見通し生成（定点サーベイランスデータ連携）
  *
  * トリガー: EventBridge 毎日 6:00 JST (cron(0 21 * * ? *))
  * データ: Tableau CSV → gakkyu-snapshots (pk=CLOSURE, sk=<YYYY-MM-DD>)
