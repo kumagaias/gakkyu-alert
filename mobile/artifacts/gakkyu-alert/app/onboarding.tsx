@@ -283,7 +283,7 @@ export default function OnboardingScreen() {
         {/* Header */}
         <View style={styles.header}>
           <Image
-            source={require("@/assets/images/logo.png")}
+            source={require("@/assets/images/icon.png")}
             style={styles.logoImage}
             resizeMode="cover"
           />
@@ -408,7 +408,7 @@ export default function OnboardingScreen() {
         >
           <View style={styles.welcomeLogoWrap}>
             <Animated.Image
-              source={require("@/assets/images/logo.png")}
+              source={require("@/assets/images/icon.png")}
               style={[
                 styles.welcomeLogo,
                 { opacity: wLogoOpacity, transform: [{ scale: wLogoScale }] },
