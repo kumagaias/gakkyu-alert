@@ -46,13 +46,14 @@ interface Props {
   selectedId?: string | null;
   onClose: () => void;
   onSelect: (prefecture: Prefecture) => void;
+  startWithList?: boolean;
 }
 
-export function PrefecturePickerModal({ visible, title, selectedId, onClose, onSelect }: Props) {
+export function PrefecturePickerModal({ visible, title, selectedId, onClose, onSelect, startWithList }: Props) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
 
-  const [showList, setShowList]     = useState(false);
+  const [showList, setShowList]     = useState(startWithList ?? false);
   const [gpsLoading, setGpsLoading] = useState(false);
   const [gpsError, setGpsError]     = useState<string | null>(null);
   const [zipCode, setZipCode]       = useState("");
@@ -85,13 +86,13 @@ export function PrefecturePickerModal({ visible, title, selectedId, onClose, onS
 
   useEffect(() => {
     if (!visible) {
-      setShowList(false);
+      setShowList(startWithList ?? false);
       setGpsError(null);
       setZipCode("");
       setZipError(null);
       setResolved(null);
     }
-  }, [visible]);
+  }, [visible, startWithList]);
 
   const handleGps = async () => {
     setGpsLoading(true);

@@ -151,25 +151,23 @@ export function AppProvider({ children: reactChildren }: { children: React.React
     setState(DEFAULT_STATE);
   }, []);
 
-  if (!loaded) return <LoadingScreen />;
+  const contextValue = {
+    ...state,
+    homeDistrict,
+    setHomeDistrict,
+    completeOnboarding,
+    addChild,
+    removeChild,
+    updateChild,
+    addExtraDistrict,
+    removeExtraDistrict,
+    updateNotifications,
+    resetApp,
+  };
 
   return (
-    <AppContext.Provider
-      value={{
-        ...state,
-        homeDistrict,
-        setHomeDistrict,
-        completeOnboarding,
-        addChild,
-        removeChild,
-        updateChild,
-        addExtraDistrict,
-        removeExtraDistrict,
-        updateNotifications,
-        resetApp,
-      }}
-    >
-      {reactChildren}
+    <AppContext.Provider value={contextValue}>
+      {!loaded ? <LoadingScreen /> : reactChildren}
     </AppContext.Provider>
   );
 }

@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "がっきゅうアラート",
+    "name": "学級アラート",
     "slug": "gakkyu-alert",
     "description": "学級閉鎖・感染症情報をリアルタイムでお届けするアラートアプリ",
     "version": "1.0.0",
@@ -10,7 +10,7 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/images/icon.png",
+      "image": "./assets/images/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#1a4bab"
     },
@@ -22,7 +22,7 @@
         "NSLocationWhenInUseUsageDescription": "現在地から居住都道府県を自動取得するために使用します。",
         "ITSAppUsesNonExemptEncryption": false
       },
-      "buildNumber": "10",
+      "buildNumber": "12",
       "entitlements": {
         "aps-environment": "production"
       }
@@ -61,9 +61,9 @@
     },
     "extra": {
       "eas": {
-        "projectId": "7c212285-b2cb-477a-807f-3767e7299ae5"
+        "projectId": "43651976-ec65-4b52-912e-6b16ff4f2942"
       }
     },
-    "owner": "kumagaias"
+    "owner": "bonopo"
   }
 }

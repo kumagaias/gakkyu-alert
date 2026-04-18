@@ -339,16 +339,6 @@ export default function SettingsScreen() {
           )}
         </View>}
 
-        {/* Account */}
-        <SectionHeader title="アカウント（任意）" />
-        <View style={[styles.sectionBlock, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <SettingsRow
-            icon="user"
-            label="登録して設定を引き継ぐ"
-            onPress={() => {}}
-          />
-        </View>
-
         {/* Reset */}
         <SectionHeader title="データ管理" />
         <View style={[styles.sectionBlock, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -378,7 +368,7 @@ export default function SettingsScreen() {
         </View>
 
         <Text style={[styles.version, { color: colors.mutedForeground }]}>
-          がっきゅうアラート v1.0.0
+          学級アラート v1.0.0
         </Text>
       </ScrollView>
 

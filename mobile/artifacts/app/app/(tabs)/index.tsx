@@ -253,7 +253,7 @@ export default function HomeScreen() {
           <View style={styles.headerLeft}>
             <Text style={styles.shieldIcon}>🛡️</Text>
             <View style={{ marginLeft: 10 }}>
-              <Text style={styles.headerTitle}>がっきゅうアラート</Text>
+              <Text style={styles.headerTitle}>学級アラート</Text>
               <Text style={styles.headerSub}>学級閉鎖 感染症モニタリング</Text>
             </View>
           </View>

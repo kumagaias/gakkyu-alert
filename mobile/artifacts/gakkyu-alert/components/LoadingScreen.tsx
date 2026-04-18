@@ -112,7 +112,7 @@ export function LoadingScreen() {
 
         {/* App name */}
         <Animated.Text style={[styles.appName, { opacity: textOpacity }]}>
-          がっきゅうアラート
+          学級アラート
         </Animated.Text>
 
         {/* Bouncing dots */}
@@ -141,23 +141,23 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   logoWrap: {
-    width: 100,
-    height: 100,
+    width: 160,
+    height: 160,
     alignItems: "center",
     justifyContent: "center",
   },
   ring: {
     position: "absolute",
-    width: 96,
-    height: 96,
-    borderRadius: 48,
+    width: 152,
+    height: 152,
+    borderRadius: 76,
     borderWidth: 2.5,
     borderColor: RING_COLOR,
   },
   logo: {
-    width: 80,
-    height: 80,
-    borderRadius: 20,
+    width: 128,
+    height: 128,
+    borderRadius: 28,
   },
   appName: {
     fontSize: 20,

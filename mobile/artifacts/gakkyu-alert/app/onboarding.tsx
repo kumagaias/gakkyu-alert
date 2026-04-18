@@ -189,6 +189,7 @@ export default function OnboardingScreen() {
       if (addr1) {
         const pref = PREFECTURES.find((p) => p.name === addr1);
         if (pref) {
+          Keyboard.dismiss();
           setCandidate(pref);
         } else {
           setPostalError("該当する都道府県が見つかりませんでした");
@@ -287,7 +288,7 @@ export default function OnboardingScreen() {
             style={styles.logoImage}
             resizeMode="cover"
           />
-          <Text style={[styles.appName, { color: colors.foreground }]}>がっきゅうアラート</Text>
+          <Text style={[styles.appName, { color: colors.foreground }]}>学級アラート</Text>
           <Text style={[styles.tagline, { color: colors.mutedForeground }]}>
             お住まいの地域の感染症情報を{"\n"}すぐにチェック
             {"  "}
@@ -366,6 +367,23 @@ export default function OnboardingScreen() {
               </Text>
             </View>
           )}
+
+          {/* Divider + Manual picker */}
+          <View style={styles.dividerRow}>
+            <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+            <Text style={[styles.dividerText, { color: colors.mutedForeground }]}>または</Text>
+            <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+          </View>
+          <TouchableOpacity
+            style={styles.manualLink}
+            onPress={() => setShowManualPicker(true)}
+            activeOpacity={0.7}
+          >
+            <Feather name="list" size={14} color={colors.mutedForeground} />
+            <Text style={[styles.manualLinkText, { color: colors.mutedForeground }]}>
+              一覧から手動で選択
+            </Text>
+          </TouchableOpacity>
         </View>
 
         <View style={{ flex: 1 }} />
@@ -394,6 +412,7 @@ export default function OnboardingScreen() {
         selectedId={candidate?.id}
         onClose={() => setShowManualPicker(false)}
         onSelect={(p) => { setCandidate(p); setShowManualPicker(false); }}
+        startWithList
       />
 
       {/* Welcome overlay */}
