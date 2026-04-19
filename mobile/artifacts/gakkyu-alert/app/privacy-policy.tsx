@@ -92,7 +92,7 @@ export default function PrivacyPolicyScreen() {
 
         <Section title="5. セキュリティ">
           <Body>
-            収集した情報はAWS上で管理し、適切なアクセス制御・暗号化を適用しています。ただし、インターネット通信の性質上、完全なセキュリティを保証することはできません。
+            収集した情報はクラウドサービス上で管理し、適切なアクセス制御・暗号化を適用しています。
           </Body>
         </Section>
 
