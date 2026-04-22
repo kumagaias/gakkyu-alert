@@ -9,10 +9,7 @@ import {
   TextInput,
   View,
 } from "react-native";
-
-if (Platform.OS !== "web") {
-  throw new Error("Admin page is web-only");
-}
+import { Redirect } from "expo-router";
 
 const API_BASE =
   process.env.EXPO_PUBLIC_API_BASE_URL ??
@@ -278,6 +275,8 @@ function Dashboard({ token, onLogout }: { token: string; onLogout: () => void })
 // ---------------------------------------------------------------------------
 
 export default function AdminPage() {
+  if (Platform.OS !== "web") return <Redirect href="/" />;
+
   const [token, setToken] = useState<string | null>(() => {
     try {
       return localStorage.getItem(TOKEN_KEY);
