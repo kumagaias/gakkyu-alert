@@ -1,8 +1,7 @@
 # Copy to terraform.tfvars (git-ignored) and fill in secrets.
 # Never commit terraform.tfvars.
 
-github_token = "ghp_xxxxxxxxxxxxxxxxxxxx"
-
-# Optionally override defaults:
-# github_repository_url = "https://github.com/kumagaias/gakkyu-alert"
-# branch_name           = "main"
+github_token        = "ghp_xxxxxxxxxxxxxxxxxxxx"
+basic_auth_username = "your-username"
+basic_auth_password = "your-password"
+admin_token         = "your-admin-token"

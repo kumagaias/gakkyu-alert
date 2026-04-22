@@ -36,3 +36,10 @@ variable "custom_domain" {
   type        = string
   default     = null
 }
+
+variable "basic_auth_credentials" {
+  description = "Base64 encoded username:password for basic auth on this branch (null to disable)"
+  type        = string
+  default     = null
+  sensitive   = true
+}

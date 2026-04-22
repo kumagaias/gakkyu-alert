@@ -303,6 +303,7 @@ module "lambda_api" {
     TABLE_DEVICES                        = module.db_devices.table_name
     TABLE_SCHOOLS                        = module.db_schools.table_name
     AWS_NODEJS_CONNECTION_REUSE_ENABLED  = "1"
+    ADMIN_TOKEN                          = var.admin_token
   }
 }
 
