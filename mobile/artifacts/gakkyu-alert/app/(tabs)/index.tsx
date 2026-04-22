@@ -51,7 +51,7 @@ export default function HomeScreen() {
       >
         <View style={styles.headerLeft}>
           <Image
-            source={require("@/assets/images/logo.png")}
+            source={require("@/assets/images/icon.png")}
             style={styles.headerLogo}
             resizeMode="cover"
           />

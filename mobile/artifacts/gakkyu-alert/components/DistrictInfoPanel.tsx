@@ -68,13 +68,11 @@ export function DistrictInfoPanel({ district, showFootnote = true }: Props) {
       {/* School closure info */}
       {district.id === "tokyo"
         ? <SchoolClosureCard district={district} />
-        : prefClosureMap[district.id] !== undefined && (
-            <SchoolClosureCard
-              district={district}
-              prefClosure={prefClosureMap[district.id]}
-              prefName={district.name}
-            />
-          )
+        : <SchoolClosureCard
+            district={district}
+            prefClosure={prefClosureMap[district.id] ?? { id: district.id, hasData: false, diseases: [] }}
+            prefName={district.name}
+          />
       }
 
       {/* Disease trend section */}

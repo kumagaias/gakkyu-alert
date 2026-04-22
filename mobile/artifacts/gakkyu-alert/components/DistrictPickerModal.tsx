@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Animated,
   Easing,
+  Keyboard,
   Modal,
   ScrollView,
   StyleSheet,
@@ -110,6 +111,7 @@ export function DistrictPickerModal({ visible, title, selectedId, onClose, onSel
   };
 
   const handleZip = async () => {
+    Keyboard.dismiss();
     setZipLoading(true);
     setZipError(null);
     setResolved(null);
@@ -170,6 +172,7 @@ export function DistrictPickerModal({ visible, title, selectedId, onClose, onSel
           <ScrollView
             contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
             showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
           >
             {groups.map((group) => (
               <View key={group.title}>

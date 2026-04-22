@@ -72,7 +72,7 @@ export default function DataSourcesScreen() {
         showsVerticalScrollIndicator={false}
       >
         <Text style={[styles.lead, { color: colors.mutedForeground }]}>
-          がっきゅうアラートは、公的機関が公開する感染症サーベイランスデータを使用しています。AIコメントはAmazon Nova Liteにより生成しています。
+          学級アラートは、公的機関が公開する感染症サーベイランスデータを使用しています。AIコメントはAmazon Nova Liteにより生成しています。
         </Text>
 
         {SOURCES.map((src) => (

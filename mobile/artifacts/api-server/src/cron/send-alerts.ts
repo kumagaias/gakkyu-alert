@@ -158,7 +158,7 @@ export const handler = async (): Promise<void> => {
     return;
   }
 
-  const title = "がっきゅうアラート 🏫";
+  const title = "学級アラート 🏫";
   const body = buildNotificationBody(entries);
 
   // 4. Expo Push 送信 (100 件ずつバッチ)

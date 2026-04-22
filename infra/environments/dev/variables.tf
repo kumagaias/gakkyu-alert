@@ -34,6 +34,24 @@ variable "github_token" {
   sensitive   = true
 }
 
+variable "basic_auth_username" {
+  description = "Basic auth username for dev Amplify"
+  type        = string
+  sensitive   = true
+}
+
+variable "basic_auth_password" {
+  description = "Basic auth password for dev Amplify"
+  type        = string
+  sensitive   = true
+}
+
+variable "admin_token" {
+  description = "Admin API token for /api/v1/admin/* endpoints"
+  type        = string
+  sensitive   = true
+}
+
 variable "custom_domain" {
   description = "Custom domain to associate with the Amplify app"
   type        = string

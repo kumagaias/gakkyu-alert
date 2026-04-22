@@ -31,7 +31,9 @@ resource "aws_amplify_branch" "this" {
   app_id      = aws_amplify_app.this.id
   branch_name = var.branch_name
 
-  enable_auto_build = true
+  enable_auto_build      = true
+  enable_basic_auth      = var.basic_auth_credentials != null
+  basic_auth_credentials = var.basic_auth_credentials
 }
 
 resource "aws_amplify_domain_association" "this" {
@@ -43,6 +45,11 @@ resource "aws_amplify_domain_association" "this" {
   sub_domain {
     branch_name = aws_amplify_branch.this.branch_name
     prefix      = ""
+  }
+
+  sub_domain {
+    branch_name = aws_amplify_branch.this.branch_name
+    prefix      = "admin"
   }
 
   wait_for_verification = false

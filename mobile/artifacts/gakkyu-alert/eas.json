@@ -8,6 +8,13 @@
       "developmentClient": true,
       "distribution": "internal"
     },
+    "development-simulator": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "ios": {
+        "simulator": true
+      }
+    },
     "preview": {
       "distribution": "internal",
       "ios": {
@@ -15,6 +22,7 @@
       }
     },
     "production": {
+      "autoIncrement": true,
       "env": {
         "EXPO_PUBLIC_API_BASE_URL": "https://5lklczr6ol.execute-api.ap-northeast-1.amazonaws.com/prd"
       },

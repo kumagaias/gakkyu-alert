@@ -34,6 +34,12 @@ variable "github_token" {
   sensitive   = true
 }
 
+variable "admin_token" {
+  description = "Admin API token for /api/v1/admin/* endpoints"
+  type        = string
+  sensitive   = true
+}
+
 variable "custom_domain" {
   description = "Custom domain to associate with the Amplify app"
   type        = string

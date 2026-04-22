@@ -372,6 +372,7 @@ export function SchoolClosureModal({ entry, district, prefName, onClose }: Props
           style={{ flex: 1 }}
           contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 24 }]}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
           {/* Stats row */}
           <View style={[styles.statsRow, { backgroundColor: colors.card, borderColor: colors.border }]}>

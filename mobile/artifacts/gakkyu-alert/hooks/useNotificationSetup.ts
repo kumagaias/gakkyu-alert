@@ -1,20 +1,29 @@
-import * as Notifications from "expo-notifications";
 import Constants from "expo-constants";
 import { Platform } from "react-native";
 import { useEffect, useRef } from "react";
 import { useRegisterDevice, useDeregisterDevice } from "@workspace/api-client-react";
 import { useApp } from "@/contexts/AppContext";
 
-// フォアグラウンドでも通知を表示する
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+// expo-notifications はネイティブモジュールが未リンクの環境（Expo Go / シミュレーター）で
+// インポート時にクラッシュする場合があるため require で安全にロードする
+type NotificationsModule = typeof import("expo-notifications");
+let Notifications: NotificationsModule | null = null;
+try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  Notifications = require("expo-notifications") as NotificationsModule;
+  // フォアグラウンドでも通知を表示する
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  });
+} catch {
+  // Expo Go / ネイティブモジュール未リンク環境ではスキップ
+}
 
 export function useNotificationSetup() {
   const { notifications, homeDistrictId, extraDistrictIds } = useApp();
@@ -23,8 +32,8 @@ export function useNotificationSetup() {
   const { mutate: deregisterDevice } = useDeregisterDevice();
 
   useEffect(() => {
-    // Web・シミュレーターでは push token が取れないためスキップ
-    if (Platform.OS === "web") return;
+    // Web またはネイティブモジュール未利用時はスキップ
+    if (Platform.OS === "web" || !Notifications) return;
 
     let cancelled = false;
 
@@ -38,7 +47,13 @@ export function useNotificationSetup() {
       }
 
       // 通知許可をリクエスト
-      const { status } = await Notifications.requestPermissionsAsync();
+      let status: string;
+      try {
+        const result = await Notifications!.requestPermissionsAsync();
+        status = result.status;
+      } catch {
+        return;
+      }
       if (status !== "granted" || cancelled) return;
 
       // Expo Push Token を取得
@@ -48,7 +63,7 @@ export function useNotificationSetup() {
 
       let token: string;
       try {
-        const result = await Notifications.getExpoPushTokenAsync({ projectId });
+        const result = await Notifications!.getExpoPushTokenAsync({ projectId });
         token = result.data;
       } catch {
         // シミュレーター等では取得不可

@@ -50,7 +50,7 @@ export default function PrivacyPolicyScreen() {
         <Text style={[styles.updated, { color: colors.mutedForeground }]}>最終更新日：2025年4月</Text>
 
         <Body>
-          がっきゅうアラート（以下「本アプリ」）は、利用者のプライバシーを尊重し、個人情報の保護に努めます。本ポリシーは、本アプリが収集する情報およびその利用方法について説明します。
+          学級アラート（以下「本アプリ」）は、利用者のプライバシーを尊重し、個人情報の保護に努めます。本ポリシーは、本アプリが収集する情報およびその利用方法について説明します。
         </Body>
 
         <Section title="1. 収集する情報">
@@ -92,7 +92,7 @@ export default function PrivacyPolicyScreen() {
 
         <Section title="5. セキュリティ">
           <Body>
-            収集した情報はAWS上で管理し、適切なアクセス制御・暗号化を適用しています。ただし、インターネット通信の性質上、完全なセキュリティを保証することはできません。
+            収集した情報はクラウドサービス上で管理し、適切なアクセス制御・暗号化を適用しています。
           </Body>
         </Section>
 

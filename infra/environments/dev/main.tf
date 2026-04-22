@@ -30,6 +30,8 @@ module "amplify" {
 
   build_spec = file("${path.module}/amplify-build-spec.yml")
 
+  basic_auth_credentials = base64encode("${var.basic_auth_username}:${var.basic_auth_password}")
+
   environment_variables = {
     EXPO_PUBLIC_API_BASE_URL = "https://${aws_api_gateway_rest_api.api.id}.execute-api.${var.aws_region}.amazonaws.com/${var.environment}"
   }
@@ -303,6 +305,7 @@ module "lambda_api" {
     TABLE_DEVICES                        = module.db_devices.table_name
     TABLE_SCHOOLS                        = module.db_schools.table_name
     AWS_NODEJS_CONNECTION_REUSE_ENABLED  = "1"
+    ADMIN_TOKEN                          = var.admin_token
   }
 }
 
