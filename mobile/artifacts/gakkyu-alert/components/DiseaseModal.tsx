@@ -104,8 +104,8 @@ function TrendLineChart({ history, current, level }: { history: number[]; curren
           fontSize={9} fill={i >= 5 ? colors.mutedForeground + "99" : colors.mutedForeground}
         >{l}</SvgText>
       ))}
-      {/* 今週の値ラベル */}
-      <SvgText x={xOf(4)} y={yOf(current) - 8} textAnchor="middle"
+      {/* 今週の値ラベル — 上端クリップを防ぐため最低 12px を確保 */}
+      <SvgText x={xOf(4)} y={Math.max(yOf(current) - 8, 12)} textAnchor="middle"
         fontSize={10} fontWeight="700" fill={lineColor}
       >{current.toFixed(1)}</SvgText>
     </Svg>
