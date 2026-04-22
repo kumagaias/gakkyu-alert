@@ -12,6 +12,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AppProvider } from "@/contexts/AppContext";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { useNotificationSetup } from "@/hooks/useNotificationSetup";
+import AdminPage from "./admin/index";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -63,6 +64,14 @@ export default function RootLayout() {
   }, [fontsLoaded, fontError]);
 
   if (!fontsLoaded && !fontError) return <LoadingScreen />;
+
+  if (
+    Platform.OS === "web" &&
+    typeof window !== "undefined" &&
+    window.location.hostname.startsWith("admin.")
+  ) {
+    return <AdminPage />;
+  }
 
   return (
     <SafeAreaProvider>

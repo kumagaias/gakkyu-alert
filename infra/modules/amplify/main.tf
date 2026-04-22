@@ -47,5 +47,10 @@ resource "aws_amplify_domain_association" "this" {
     prefix      = ""
   }
 
+  sub_domain {
+    branch_name = aws_amplify_branch.this.branch_name
+    prefix      = "admin"
+  }
+
   wait_for_verification = false
 }
