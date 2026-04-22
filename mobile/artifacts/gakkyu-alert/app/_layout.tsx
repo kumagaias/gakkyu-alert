@@ -12,7 +12,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AppProvider } from "@/contexts/AppContext";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { useNotificationSetup } from "@/hooks/useNotificationSetup";
-import AdminPage from "./admin/index";
+import AdminPage from "@/components/AdminPage";
 
 SplashScreen.preventAutoHideAsync();
 
