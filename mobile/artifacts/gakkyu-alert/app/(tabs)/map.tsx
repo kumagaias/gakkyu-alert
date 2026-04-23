@@ -149,6 +149,29 @@ function buildMapHTML(
       subdomains: 'abcd', maxZoom: 19
     }).addTo(map);
 
+    // 島が多い・小さい県のタップ補助円（GeoJSON より低いペインに置き、正確なポリゴンが優先される）
+    map.createPane('hitAreas');
+    map.getPane('hitAreas').style.zIndex = '350'; // overlayPane(400) より下
+    map.getPane('hitAreas').style.pointerEvents = 'auto';
+    var HIT_AREAS = [
+      { id: 'nagasaki', latlng: [33.0, 129.7], radius: 80000 },
+      { id: 'okinawa',  latlng: [26.4, 127.8], radius: 65000 },
+    ];
+    HIT_AREAS.forEach(function(ha) {
+      var displayName = Object.keys(NAME_TO_ID).find(function(k) { return NAME_TO_ID[k] === ha.id; }) || '';
+      L.circle(ha.latlng, {
+        radius: ha.radius,
+        fillOpacity: 0,
+        opacity: 0,
+        interactive: true,
+        pane: 'hitAreas',
+        bubblingMouseEvents: false,
+      }).on('click', function(e) {
+        L.DomEvent.stopPropagation(e);
+        send({ type: 'prefClick', id: ha.id, name: displayName });
+      }).addTo(map);
+    });
+
     L.control.attribution({ position: 'bottomleft', prefix: '' })
       .addAttribution('© <a href="https://openstreetmap.org">OSM</a> © <a href="https://carto.com">CARTO</a>')
       .addTo(map);
