@@ -335,6 +335,12 @@ export default function SettingsScreen() {
                   ))}
                 </View>
               </View>
+              <View style={[styles.levelTip, { backgroundColor: colors.muted }]}>
+                <Text style={[styles.levelTipText, { color: colors.mutedForeground }]}>
+                  <Text style={{ fontWeight: "700" }}>警戒（Lv.2）</Text>：定点あたり患者数が注意報水準を超えた状態。学校での集団感染が起きやすい時期です。{"\n"}
+                  <Text style={{ fontWeight: "700" }}>流行（Lv.3）</Text>：警報水準を超えた状態。広域での流行が拡大しています。
+                </Text>
+              </View>
             </>
           )}
         </View>}
@@ -589,6 +595,16 @@ const styles = StyleSheet.create({
   levelChipText: {
     fontSize: 12,
     fontWeight: "600",
+  },
+  levelTip: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    borderRadius: 10,
+    padding: 12,
+  },
+  levelTipText: {
+    fontSize: 12,
+    lineHeight: 18,
   },
   resetRow: {
     flexDirection: "row",
