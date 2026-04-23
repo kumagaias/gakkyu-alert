@@ -19,6 +19,7 @@ import { useColors } from "@/hooks/useColors";
 import { useApp, type Child } from "@/contexts/AppContext";
 import { PREFECTURES } from "@/constants/data";
 import { PrefecturePickerModal } from "@/components/PrefecturePickerModal";
+import { LevelExplainModal } from "@/components/LevelExplainModal";
 
 function SectionHeader({ title }: { title: string }) {
   const colors = useColors();
@@ -172,6 +173,7 @@ export default function SettingsScreen() {
   const [showDistrictPicker, setShowDistrictPicker] = useState(false);
   const [pickerTarget, setPickerTarget] = useState<"home" | "extra">("home");
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [showLevelExplain, setShowLevelExplain] = useState(false);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -335,12 +337,14 @@ export default function SettingsScreen() {
                   ))}
                 </View>
               </View>
-              <View style={[styles.levelTip, { backgroundColor: colors.muted }]}>
-                <Text style={[styles.levelTipText, { color: colors.mutedForeground }]}>
-                  <Text style={{ fontWeight: "700" }}>警戒（Lv.2）</Text>：定点あたり患者数が注意報水準を超えた状態。学校での集団感染が起きやすい時期です。{"\n"}
-                  <Text style={{ fontWeight: "700" }}>流行（Lv.3）</Text>：警報水準を超えた状態。広域での流行が拡大しています。
-                </Text>
-              </View>
+              <TouchableOpacity
+                style={[styles.levelTip, { backgroundColor: colors.muted }]}
+                onPress={() => setShowLevelExplain(true)}
+                activeOpacity={0.7}
+              >
+                <Feather name="info" size={13} color={colors.primary} />
+                <Text style={[styles.levelTipText, { color: colors.primary }]}>感染レベルとは？</Text>
+              </TouchableOpacity>
             </>
           )}
         </View>}
@@ -471,6 +475,8 @@ export default function SettingsScreen() {
         </View>
       </Modal>
 
+      <LevelExplainModal visible={showLevelExplain} onClose={() => setShowLevelExplain(false)} />
+
       {/* Prefecture Picker Modal */}
       <PrefecturePickerModal
         visible={showDistrictPicker}
@@ -597,14 +603,18 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   levelTip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
     marginHorizontal: 16,
     marginBottom: 12,
     borderRadius: 10,
-    padding: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
   levelTipText: {
-    fontSize: 12,
-    lineHeight: 18,
+    fontSize: 13,
+    fontWeight: "600",
   },
   resetRow: {
     flexDirection: "row",
