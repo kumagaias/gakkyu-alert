@@ -10,6 +10,7 @@ import {
   View,
 } from "react-native";
 import { WebView } from "react-native-webview";
+import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
 import { useApp } from "@/contexts/AppContext";
@@ -213,6 +214,7 @@ function buildMapHTML(
       try {
         var msg = JSON.parse(typeof e.data === 'string' ? e.data : '{}');
         if (msg.type === 'fit') { doFit(); }
+        if (msg.type === 'fitHome') { doFit(); }
       } catch(err) {}
     });
 
@@ -293,12 +295,20 @@ function LeafletMapWeb({
   html,
   onMessage,
   style,
+  fitHomeTrigger,
 }: {
   html: string;
   onMessage: MessageHandler;
   style?: object;
+  fitHomeTrigger?: number;
 }) {
   const containerRef = useRef<View>(null);
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
+
+  useEffect(() => {
+    if (fitHomeTrigger === undefined || fitHomeTrigger === 0) return;
+    iframeRef.current?.contentWindow?.postMessage(JSON.stringify({ type: "fitHome" }), "*");
+  }, [fitHomeTrigger]);
 
   useEffect(() => {
     const el = containerRef.current as unknown as HTMLDivElement | null;
@@ -308,6 +318,7 @@ function LeafletMapWeb({
     const url = URL.createObjectURL(blob);
 
     const iframe = document.createElement("iframe");
+    iframeRef.current = iframe;
     iframe.src = url;
     iframe.style.width = "100%";
     iframe.style.height = "100%";
@@ -334,6 +345,7 @@ function LeafletMapWeb({
       window.removeEventListener("message", handleMsg);
       URL.revokeObjectURL(url);
       if (el.contains(iframe)) el.removeChild(iframe);
+      iframeRef.current = null;
     };
   }, [html]); // html が変わったら iframe を作り直す
 
@@ -346,14 +358,23 @@ function LeafletMap({
   html,
   onMessage,
   onError,
+  fitHomeTrigger,
 }: {
   html: string;
   onMessage: MessageHandler;
   onError?: () => void;
+  fitHomeTrigger?: number;
 }) {
   const colors = useColors();
   const [loading, setLoading] = useState(true);
   const webViewRef = useRef<WebView>(null);
+
+  useEffect(() => {
+    if (!fitHomeTrigger) return;
+    webViewRef.current?.injectJavaScript(`
+      (function(){ try { doFit(); } catch(e){} })();
+    `);
+  }, [fitHomeTrigger]);
 
   const handleMsg = useCallback(
     (raw: string) => {
@@ -370,7 +391,7 @@ function LeafletMap({
   if (Platform.OS === "web") {
     return (
       <View style={{ flex: 1 }}>
-        <LeafletMapWeb html={html} onMessage={handleMsg} />
+        <LeafletMapWeb html={html} onMessage={handleMsg} fitHomeTrigger={fitHomeTrigger} />
       </View>
     );
   }
@@ -417,6 +438,7 @@ export default function MapScreen() {
   const { prefectures } = useStatusData();
   const [selectedDistrict, setSelectedDistrict] = useState<District | null>(null);
   const [mapError, setMapError] = useState(false);
+  const [fitHomeTrigger, setFitHomeTrigger] = useState(0);
 
   // 居住地区IDが都道府県IDかどうか確認（東京区市は district ID → "tokyo" に変換）
   const homePrefId = homeDistrictId
@@ -495,11 +517,23 @@ export default function MapScreen() {
             </TouchableOpacity>
           </View>
         ) : (
-          <LeafletMap
-            html={mapHTML}
-            onMessage={handleMessage}
-            onError={() => setMapError(true)}
-          />
+          <>
+            <LeafletMap
+              html={mapHTML}
+              onMessage={handleMessage}
+              onError={() => setMapError(true)}
+              fitHomeTrigger={fitHomeTrigger}
+            />
+            {homePrefId && (
+              <TouchableOpacity
+                style={[styles.homeBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+                onPress={() => setFitHomeTrigger((n) => n + 1)}
+                activeOpacity={0.8}
+              >
+                <Feather name="home" size={18} color={colors.primary} />
+              </TouchableOpacity>
+            )}
+          </>
         )}
       </View>
 
@@ -535,4 +569,20 @@ const styles = StyleSheet.create({
   errorSub: { fontSize: 13, textAlign: "center" },
   retryBtn: { marginTop: 6, paddingHorizontal: 28, paddingVertical: 12, borderRadius: 12 },
   retryText: { color: "#fff", fontWeight: "700", fontSize: 14 },
+  homeBtn: {
+    position: "absolute",
+    bottom: 16,
+    right: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 4,
+  },
 });
