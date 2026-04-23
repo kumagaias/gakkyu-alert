@@ -168,7 +168,7 @@ export function DiseaseModal({ disease, onClose }: Props) {
   return (
     <Modal visible animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <View style={[styles.outer, { backgroundColor: colors.background }]}>
-      <View style={styles.container}>
+      <View style={[styles.container, { paddingTop: insets.top + 8 }]}>
         <View style={[styles.handle, { backgroundColor: colors.border }]} />
 
         <View style={[styles.headerRow, { borderBottomColor: colors.border }]}>
@@ -306,7 +306,6 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    paddingTop: 8,
     ...(Platform.OS === "web" && {
       maxWidth: 680,
       width: "100%",
