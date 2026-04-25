@@ -45,7 +45,7 @@ export function DiseaseRow({ disease, onPress }: Props) {
         </Text>
       </View>
       <View style={styles.right}>
-        <Feather name={trendIcon as any} size={14} color={trendColor} />
+        <Feather name={trendIcon} size={14} color={trendColor} />
         <Text style={[styles.count, { color: colors.mutedForeground }]}>
           {disease.currentCount.toFixed(1)}
         </Text>

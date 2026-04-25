@@ -393,7 +393,7 @@ export function SchoolClosureModal({ entry, district, prefName, onClose }: Props
             <View style={styles.statItem}>
               <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>先週比</Text>
               <View style={styles.deltaRow}>
-                <Feather name={deltaIcon as any} size={14} color={deltaColor} />
+                <Feather name={deltaIcon} size={14} color={deltaColor} />
                 <Text style={[styles.statValue, { color: deltaColor }]}>{deltaText}</Text>
               </View>
             </View>
