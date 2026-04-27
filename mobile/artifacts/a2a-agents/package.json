@@ -1,0 +1,29 @@
+{
+  "name": "@workspace/a2a-agents",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -n surveillance,analysis,orchestrator -c cyan,green,yellow \"tsx src/surveillance/server.ts\" \"tsx src/analysis/server.ts\" \"tsx src/orchestrator/server.ts\"",
+    "dev:surveillance": "tsx src/surveillance/server.ts",
+    "dev:analysis": "tsx src/analysis/server.ts",
+    "dev:orchestrator": "tsx src/orchestrator/server.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@aws-sdk/client-bedrock-runtime": "^3.800.0",
+    "cors": "^2",
+    "express": "^5",
+    "uuid": "^11.1.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "catalog:",
+    "@types/uuid": "^10.0.0",
+    "concurrently": "^9.1.2",
+    "tsx": "catalog:",
+    "typescript": "~5.9.2"
+  }
+}
