@@ -29,13 +29,14 @@ interface Props {
   entry: SchoolClosureEntry | null;
   district?: District | null;
   prefName?: string;
+  lastUpdated?: string;
   onClose: () => void;
 }
 
 // ── Date label helpers ───────────────────────────────────────────────────────
 
 function computeDateLabels(lastUpdated: string, count: number): string[] {
-  const [y, m, d] = lastUpdated.split("/").map(Number);
+  const [y, m, d] = lastUpdated.replace(/-/g, "/").split("/").map(Number);
   const base = new Date(y, m - 1, d);
   return Array.from({ length: count }, (_, i) => {
     const daysAgo = (count - 1 - i) * 7;
@@ -95,7 +96,7 @@ function TrendLineChart({ history, lastUpdated }: { history: number[]; lastUpdat
   const labels     = computeDateLabels(lastUpdated, n);
 
   // Forecast date label: lastUpdated + 7 days
-  const [ly, lm, ld] = lastUpdated.split("/").map(Number);
+  const [ly, lm, ld] = lastUpdated.replace(/-/g, "/").split("/").map(Number);
   const fcDate = new Date(ly, lm - 1, ld + 7);
   const fcLabel = `${fcDate.getMonth() + 1}/${fcDate.getDate()}`;
 
@@ -306,7 +307,7 @@ function getSummaryText(entry: SchoolClosureEntry, location: string): string {
 }
 
 
-export function SchoolClosureModal({ entry, district, prefName, onClose }: Props) {
+export function SchoolClosureModal({ entry, district, prefName, lastUpdated, onClose }: Props) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
 
@@ -393,7 +394,7 @@ export function SchoolClosureModal({ entry, district, prefName, onClose }: Props
             <View style={styles.statItem}>
               <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>先週比</Text>
               <View style={styles.deltaRow}>
-                <Feather name={deltaIcon as any} size={14} color={deltaColor} />
+                <Feather name={deltaIcon} size={14} color={deltaColor} />
                 <Text style={[styles.statValue, { color: deltaColor }]}>{deltaText}</Text>
               </View>
             </View>
@@ -410,7 +411,7 @@ export function SchoolClosureModal({ entry, district, prefName, onClose }: Props
               </View>
               <TrendLineChart
                 history={entry.weeklyHistory}
-                lastUpdated={SCHOOL_CLOSURES.lastUpdated}
+                lastUpdated={lastUpdated ?? SCHOOL_CLOSURES.lastUpdated}
               />
             </View>
           )}

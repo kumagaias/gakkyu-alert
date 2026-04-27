@@ -5,7 +5,7 @@ import { useColors } from "@/hooks/useColors";
 import { type EpidemicLevel, LEVEL_NAMES, HOME_AI_SUMMARIES } from "@/constants/data";
 import { LevelExplainModal } from "@/components/LevelExplainModal";
 
-const LEVEL_ICONS: Record<EpidemicLevel, string> = {
+const LEVEL_ICONS: Record<EpidemicLevel, React.ComponentProps<typeof Feather>["name"]> = {
   0: "smile",
   1: "meh",
   2: "frown",
@@ -54,7 +54,7 @@ export function EpidemicLevelCard({ level, aiOutlook }: Props) {
             </View>
           </View>
           <View style={[styles.schoolIconWrap, { backgroundColor: lc.badge }]}>
-            <Feather name={LEVEL_ICONS[level] as any} size={22} color="#fff" />
+            <Feather name={LEVEL_ICONS[level]} size={22} color="#fff" />
           </View>
         </View>
         <Text style={[styles.summary, { color: lc.text }]}>{HOME_AI_SUMMARIES[level]}</Text>

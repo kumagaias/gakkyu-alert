@@ -4,7 +4,7 @@ import { Feather } from "@expo/vector-icons";
 import { useColors } from "@/hooks/useColors";
 
 interface Props {
-  icon: string;
+  icon: React.ComponentProps<typeof Feather>["name"];
   title: string;
   subtitle: string;
   onPress: () => void;
@@ -19,7 +19,7 @@ export function BannerCard({ icon, title, subtitle, onPress }: Props) {
       activeOpacity={0.8}
     >
       <View style={[styles.iconWrap, { backgroundColor: colors.accent }]}>
-        <Feather name={icon as any} size={18} color={colors.primary} />
+        <Feather name={icon} size={18} color={colors.primary} />
       </View>
       <View style={{ flex: 1 }}>
         <Text style={[styles.title, { color: colors.foreground }]}>{title}</Text>

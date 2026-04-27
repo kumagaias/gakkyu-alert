@@ -6,26 +6,37 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://api.gakkyu-alert-dev.kumagaias.com"
+      }
     },
     "development-simulator": {
       "developmentClient": true,
       "distribution": "internal",
       "ios": {
         "simulator": true
+      },
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://api.gakkyu-alert-dev.kumagaias.com"
       }
     },
     "preview": {
-      "distribution": "internal",
+      "android": {
+        "distribution": "store"
+      },
       "ios": {
+        "distribution": "internal",
         "simulator": false
+      },
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://api.gakkyu-alert-dev.kumagaias.com"
       }
     },
     "production": {
       "autoIncrement": true,
-      "autoSubmit": true,
       "env": {
-        "EXPO_PUBLIC_API_BASE_URL": "https://5lklczr6ol.execute-api.ap-northeast-1.amazonaws.com/prd"
+        "EXPO_PUBLIC_API_BASE_URL": "https://api.gakkyu-alert.kumagaias.com"
       },
       "ios": {
         "resourceClass": "m-medium"
@@ -33,6 +44,12 @@
     }
   },
   "submit": {
+    "preview": {
+      "android": {
+        "serviceAccountKeyPath": "./google-service-account.json",
+        "track": "internal"
+      }
+    },
     "production": {
       "ios": {
         "appleTeamId": "3579SQZWLU",

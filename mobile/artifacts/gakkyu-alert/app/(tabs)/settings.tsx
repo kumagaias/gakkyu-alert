@@ -35,7 +35,7 @@ function SettingsRow({
   onPress,
   right,
 }: {
-  icon: string;
+  icon: React.ComponentProps<typeof Feather>["name"];
   label: string;
   value?: string;
   onPress?: () => void;
@@ -50,7 +50,7 @@ function SettingsRow({
       disabled={!onPress && !right}
     >
       <View style={[styles.rowIcon, { backgroundColor: colors.muted }]}>
-        <Feather name={icon as any} size={16} color={colors.primary} />
+        <Feather name={icon} size={16} color={colors.primary} />
       </View>
       <Text style={[styles.rowLabel, { color: colors.foreground }]}>{label}</Text>
       {value && <Text style={[styles.rowValue, { color: colors.mutedForeground }]}>{value}</Text>}
