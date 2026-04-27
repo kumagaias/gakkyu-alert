@@ -18,6 +18,11 @@ output "api_gateway_url" {
   value       = "${aws_api_gateway_stage.api.invoke_url}"
 }
 
+output "api_custom_domain_url" {
+  description = "API カスタムドメイン URL"
+  value       = var.api_custom_domain != null ? "https://${var.api_custom_domain}" : null
+}
+
 output "lambda_api_name" {
   description = "API Lambda 関数名"
   value       = module.lambda_api.function_name

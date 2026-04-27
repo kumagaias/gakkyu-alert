@@ -51,3 +51,9 @@ variable "route53_zone_name" {
   type        = string
   default     = "kumagaias.com"
 }
+
+variable "api_custom_domain" {
+  description = "API Gateway のカスタムドメイン"
+  type        = string
+  default     = "api.gakkyu-alert.kumagaias.com"
+}
