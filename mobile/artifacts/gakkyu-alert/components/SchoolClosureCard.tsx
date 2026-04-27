@@ -206,6 +206,7 @@ export function SchoolClosureCard({ district, prefClosure, prefName }: Props) {
         <SchoolClosureModal
           entry={selectedEntry}
           prefName={prefName}
+          lastUpdated={schoolClosures.lastUpdated}
           onClose={() => setSelectedEntry(null)}
         />
       </View>
@@ -306,6 +307,7 @@ export function SchoolClosureCard({ district, prefClosure, prefName }: Props) {
       <SchoolClosureModal
         entry={selectedEntry}
         district={district}
+        lastUpdated={schoolClosures.lastUpdated}
         onClose={() => setSelectedEntry(null)}
       />
     </View>
