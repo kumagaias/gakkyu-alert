@@ -244,15 +244,48 @@ const TAB_LABELS: Record<Tab, string> = {
   push: "テスト通知",
 };
 
+const PUSH_TEMPLATES: { label: string; title: string; body: string }[] = [
+  {
+    label: "🔴 流行（インフルエンザ）",
+    title: "[テスト] がっきゅうアラート：流行警報",
+    body: "インフルエンザが流行レベルに達しました。定点あたり30.2人。学級閉鎖の基準を超えています。",
+  },
+  {
+    label: "🟠 警戒（新型コロナ）",
+    title: "[テスト] がっきゅうアラート：警戒レベル",
+    body: "新型コロナウイルス感染症が警戒レベルです。定点あたり12.5人。手洗い・換気を徹底してください。",
+  },
+  {
+    label: "🟡 注意（RSウイルス）",
+    title: "[テスト] がっきゅうアラート：注意",
+    body: "RSウイルス感染症が注意レベルです。定点あたり4.1人。乳幼児は特にご注意ください。",
+  },
+  {
+    label: "🏫 学級閉鎖増加",
+    title: "[テスト] がっきゅうアラート：学級閉鎖",
+    body: "東京都でインフルエンザによる学級閉鎖が増加しています。今週156クラス（先週比 +23）。",
+  },
+];
+
 function PushTab({ token }: { token: string }) {
   const [pushToken, setPushToken] = useState("");
-  const [title, setTitle] = useState("テスト通知");
-  const [body, setBody] = useState("これはテスト通知です");
+  const [title, setTitle] = useState(PUSH_TEMPLATES[0].title);
+  const [body, setBody] = useState(PUSH_TEMPLATES[0].body);
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<{ sent: number; success: number; failure: number; message?: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const applyTemplate = useCallback((tpl: typeof PUSH_TEMPLATES[number]) => {
+    setTitle(tpl.title);
+    setBody(tpl.body);
+    setResult(null);
+    setError(null);
+  }, []);
+
+  const canSend = pushToken.trim().length > 0 && !sending;
+
   const handleSend = useCallback(async () => {
+    if (!canSend) return;
     setSending(true);
     setResult(null);
     setError(null);
@@ -260,7 +293,7 @@ function PushTab({ token }: { token: string }) {
       const res = await fetch(`${API_BASE}/api/v1/admin/test-push`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ token: pushToken.trim() || undefined, title: title.trim(), body: body.trim() }),
+        body: JSON.stringify({ token: pushToken.trim(), title: title.trim(), body: body.trim() }),
       });
       if (res.status === 401) throw new Error("unauthorized");
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -270,12 +303,28 @@ function PushTab({ token }: { token: string }) {
     } finally {
       setSending(false);
     }
-  }, [token, pushToken, title, body]);
+  }, [token, pushToken, title, body, canSend]);
 
   return (
     <View style={s.card}>
       <Text style={s.cardTitle}>Push 通知テスト送信</Text>
-      <Text style={s.cardMeta}>Expo Push Token（空欄 = 全デバイス）</Text>
+
+      <Text style={s.cardMeta}>テンプレート</Text>
+      <View style={s.templateGrid}>
+        {PUSH_TEMPLATES.map((tpl) => (
+          <Pressable
+            key={tpl.label}
+            style={[s.templateBtn, title === tpl.title && s.templateBtnActive]}
+            onPress={() => applyTemplate(tpl)}
+          >
+            <Text style={[s.templateBtnText, title === tpl.title && s.templateBtnTextActive]}>
+              {tpl.label}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+
+      <Text style={s.cardMeta}>送信先 Expo Push Token（必須）</Text>
       <TextInput
         style={s.input}
         placeholder="ExponentPushToken[...]"
@@ -284,13 +333,18 @@ function PushTab({ token }: { token: string }) {
         autoCapitalize="none"
         autoCorrect={false}
       />
+
       <Text style={s.cardMeta}>タイトル</Text>
       <TextInput style={s.input} value={title} onChangeText={setTitle} />
       <Text style={s.cardMeta}>本文</Text>
-      <TextInput style={s.input} value={body} onChangeText={setBody} />
-      <Pressable style={[s.btn, sending && s.btnDisabled]} onPress={handleSend} disabled={sending}>
+      <TextInput style={s.input} value={body} onChangeText={setBody} multiline />
+
+      <Pressable style={[s.btn, !canSend && s.btnDisabled]} onPress={handleSend} disabled={!canSend}>
         <Text style={s.btnText}>{sending ? "送信中…" : "送信"}</Text>
       </Pressable>
+      {!pushToken.trim() && (
+        <Text style={s.cardMeta}>※ 送信先 Token を入力してください</Text>
+      )}
       {result && (
         <Text style={s.cardMeta}>
           {result.message ?? `送信: ${result.sent} / 成功: ${result.success} / 失敗: ${result.failure}`}
@@ -369,6 +423,11 @@ const s = StyleSheet.create({
   input: { borderWidth: 1, borderColor: "#d1d5db", borderRadius: 8, padding: 12, fontSize: 14 },
   btn: { backgroundColor: "#1a4bab", borderRadius: 8, padding: 14, alignItems: "center" },
   btnDisabled: { opacity: 0.5 },
+  templateGrid: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 4 },
+  templateBtn: { borderWidth: 1, borderColor: "#d1d5db", borderRadius: 6, paddingHorizontal: 10, paddingVertical: 6 },
+  templateBtnActive: { borderColor: "#1a4bab", backgroundColor: "#eff6ff" },
+  templateBtnText: { fontSize: 12, color: "#6b7280" },
+  templateBtnTextActive: { color: "#1a4bab", fontWeight: "600" },
   btnText: { color: "#fff", fontWeight: "600", fontSize: 15 },
 
   // Dashboard

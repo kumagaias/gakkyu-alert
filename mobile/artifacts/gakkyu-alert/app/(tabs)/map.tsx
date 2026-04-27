@@ -144,7 +144,7 @@ function buildMapHTML(
       attributionControl: false,
       minZoom: 4,
       maxZoom: 10,
-      maxBounds: [[20, 120], [46, 150]],
+      maxBounds: [[20, 120], [52, 150]],
       maxBoundsViscosity: 1.0,
     });
 
