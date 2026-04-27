@@ -102,7 +102,7 @@ export default function HomeScreen() {
                 onPress={() => router.push("/(tabs)/settings")}
               />
             )}
-            {!notifications.enabled && (
+            {!notifications.enabled && Platform.OS !== 'web' && (
               <BannerCard
                 icon="bell"
                 title="Push通知をオンにする"

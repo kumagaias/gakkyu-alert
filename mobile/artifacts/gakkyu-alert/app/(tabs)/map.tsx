@@ -144,6 +144,8 @@ function buildMapHTML(
       attributionControl: false,
       minZoom: 4,
       maxZoom: 10,
+      maxBounds: [[20, 120], [46, 150]],
+      maxBoundsViscosity: 1.0,
     });
 
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
