@@ -235,7 +235,71 @@ function LoginScreen({ onLogin }: { onLogin: (token: string) => void }) {
 // Dashboard
 // ---------------------------------------------------------------------------
 
-type Tab = "jobs" | "closures" | "diseases";
+type Tab = "jobs" | "closures" | "diseases" | "push";
+
+const TAB_LABELS: Record<Tab, string> = {
+  jobs: "バッチ状況",
+  closures: "閉鎖一覧",
+  diseases: "病気トレンド",
+  push: "テスト通知",
+};
+
+function PushTab({ token }: { token: string }) {
+  const [pushToken, setPushToken] = useState("");
+  const [title, setTitle] = useState("テスト通知");
+  const [body, setBody] = useState("これはテスト通知です");
+  const [sending, setSending] = useState(false);
+  const [result, setResult] = useState<{ sent: number; success: number; failure: number; message?: string } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSend = useCallback(async () => {
+    setSending(true);
+    setResult(null);
+    setError(null);
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/admin/test-push`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ token: pushToken.trim() || undefined, title: title.trim(), body: body.trim() }),
+      });
+      if (res.status === 401) throw new Error("unauthorized");
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setResult(await res.json() as { sent: number; success: number; failure: number; message?: string });
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "送信エラー");
+    } finally {
+      setSending(false);
+    }
+  }, [token, pushToken, title, body]);
+
+  return (
+    <View style={s.card}>
+      <Text style={s.cardTitle}>Push 通知テスト送信</Text>
+      <Text style={s.cardMeta}>Expo Push Token（空欄 = 全デバイス）</Text>
+      <TextInput
+        style={s.input}
+        placeholder="ExponentPushToken[...]"
+        value={pushToken}
+        onChangeText={setPushToken}
+        autoCapitalize="none"
+        autoCorrect={false}
+      />
+      <Text style={s.cardMeta}>タイトル</Text>
+      <TextInput style={s.input} value={title} onChangeText={setTitle} />
+      <Text style={s.cardMeta}>本文</Text>
+      <TextInput style={s.input} value={body} onChangeText={setBody} />
+      <Pressable style={[s.btn, sending && s.btnDisabled]} onPress={handleSend} disabled={sending}>
+        <Text style={s.btnText}>{sending ? "送信中…" : "送信"}</Text>
+      </Pressable>
+      {result && (
+        <Text style={s.cardMeta}>
+          {result.message ?? `送信: ${result.sent} / 成功: ${result.success} / 失敗: ${result.failure}`}
+        </Text>
+      )}
+      {error && <Text style={s.errorText}>{error}</Text>}
+    </View>
+  );
+}
 
 function Dashboard({ token, onLogout }: { token: string; onLogout: () => void }) {
   const [tab, setTab] = useState<Tab>("jobs");
@@ -250,11 +314,9 @@ function Dashboard({ token, onLogout }: { token: string; onLogout: () => void })
       </View>
 
       <View style={s.tabBar}>
-        {(["jobs", "closures", "diseases"] as Tab[]).map((t) => (
+        {(["jobs", "closures", "diseases", "push"] as Tab[]).map((t) => (
           <Pressable key={t} style={[s.tabItem, tab === t && s.tabActive]} onPress={() => setTab(t)}>
-            <Text style={[s.tabText, tab === t && s.tabTextActive]}>
-              {t === "jobs" ? "バッチ状況" : t === "closures" ? "閉鎖一覧" : "病気トレンド"}
-            </Text>
+            <Text style={[s.tabText, tab === t && s.tabTextActive]}>{TAB_LABELS[t]}</Text>
           </Pressable>
         ))}
       </View>
@@ -263,6 +325,7 @@ function Dashboard({ token, onLogout }: { token: string; onLogout: () => void })
         {tab === "jobs" && <JobsTab token={token} />}
         {tab === "closures" && <ClosuresTab token={token} />}
         {tab === "diseases" && <DiseasesTab token={token} />}
+        {tab === "push" && <PushTab token={token} />}
       </ScrollView>
     </View>
   );
@@ -305,6 +368,7 @@ const s = StyleSheet.create({
   loginTitle: { fontSize: 22, fontWeight: "700", color: "#1a4bab", textAlign: "center" },
   input: { borderWidth: 1, borderColor: "#d1d5db", borderRadius: 8, padding: 12, fontSize: 14 },
   btn: { backgroundColor: "#1a4bab", borderRadius: 8, padding: 14, alignItems: "center" },
+  btnDisabled: { opacity: 0.5 },
   btnText: { color: "#fff", fontWeight: "600", fontSize: 15 },
 
   // Dashboard
