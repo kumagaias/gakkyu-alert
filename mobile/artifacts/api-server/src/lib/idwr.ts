@@ -17,6 +17,7 @@
  */
 
 import iconv from "iconv-lite";
+import { logger } from "./logger.js";
 
 const IDWR_BASE_URL =
   "https://id-info.jihs.go.jp/surveillance/idwr/provisional";
@@ -263,10 +264,10 @@ export async function fetchLatestIdwrData(
         return { records, year, week };
       }
 
-      console.warn(`IDWR ${year}-W${week}: データなし、前週を試みます`);
+      logger.warn({ year, week }, "IDWR: データなし、前週を試みます");
     } catch (err) {
       lastError = err instanceof Error ? err : new Error(String(err));
-      console.warn(`IDWR ${year}-W${week}: ${lastError.message}`);
+      logger.warn({ year, week, err: lastError.message }, "IDWR: 取得失敗");
     }
 
     week--;

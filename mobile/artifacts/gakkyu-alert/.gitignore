@@ -42,3 +42,5 @@ yarn-error.*
 
 # Google Play service account key (secret — never commit)
 google-service-account.json
+credentials.json
+*.jks
