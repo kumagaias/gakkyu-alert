@@ -20,6 +20,7 @@ export interface StatusData {
   prefectures: Prefecture[];
   prefClosureMap: Record<string, PrefClosureStatus>;
   asOf: string | null;
+  diseaseWeekDate: string | null;
   isLoading: boolean;
   isError: boolean;
 }
@@ -35,6 +36,7 @@ export function useStatusData(): StatusData {
       prefectures: PREFECTURES,
       prefClosureMap: {},
       asOf: null,
+      diseaseWeekDate: null,
       isLoading,
       isError,
     };
@@ -106,5 +108,5 @@ export function useStatusData(): StatusData {
     prefClosureMap[pc.id] = pc as PrefClosureStatus;
   }
 
-  return { diseases, schoolClosures, districts, prefectures, prefClosureMap, asOf: data.asOf, isLoading, isError };
+  return { diseases, schoolClosures, districts, prefectures, prefClosureMap, asOf: data.asOf, diseaseWeekDate: (data as Record<string, unknown>).diseaseWeekDate as string ?? null, isLoading, isError };
 }
