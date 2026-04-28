@@ -23,10 +23,11 @@ export interface StatusData {
   diseaseWeekDate: string | null;
   isLoading: boolean;
   isError: boolean;
+  refetch: () => void;
 }
 
 export function useStatusData(): StatusData {
-  const { data, isLoading, isError } = useGetStatus();
+  const { data, isLoading, isError, refetch } = useGetStatus();
 
   if (!data) {
     return {
@@ -39,6 +40,7 @@ export function useStatusData(): StatusData {
       diseaseWeekDate: null,
       isLoading,
       isError,
+      refetch,
     };
   }
 
@@ -108,5 +110,5 @@ export function useStatusData(): StatusData {
     prefClosureMap[pc.id] = pc as PrefClosureStatus;
   }
 
-  return { diseases, schoolClosures, districts, prefectures, prefClosureMap, asOf: data.asOf, diseaseWeekDate: (data as Record<string, unknown>).diseaseWeekDate as string ?? null, isLoading, isError };
+  return { diseases, schoolClosures, districts, prefectures, prefClosureMap, asOf: data.asOf, diseaseWeekDate: (data as Record<string, unknown>).diseaseWeekDate as string ?? null, isLoading, isError, refetch };
 }
