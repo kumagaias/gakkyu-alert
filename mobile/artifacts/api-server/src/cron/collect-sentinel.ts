@@ -522,14 +522,24 @@ export const handler = async (): Promise<void> => {
     diseases: PrefDiseaseEntry[];
   }> = [];
 
-  // 並列実行制限を設定
+  // 並列実行制限を設定（全都道府県で共有）
   const limit = pLimit(BEDROCK_CONCURRENCY);
+
+  // 全都道府県のデータ準備（週次履歴構築）
+  const prefDataList: Array<{
+    prefId: string;
+    prefName: string;
+    level: 0 | 1 | 2 | 3;
+    flu: number;
+    covid: number;
+    diseaseBreakdown: PrefDiseaseEntry[];
+  }> = [];
 
   for (const [prefId, { flu, covid, all }] of prefMap) {
     const level = prefLevel(flu, covid);
     const prefName = PREF_NAMES[prefId] ?? prefId;
 
-    // 疾患ごとに週次履歴・AI を構築
+    // 疾患ごとに週次履歴を構築
     const diseaseBreakdown: PrefDiseaseEntry[] = Array.from(all.entries()).map(
       ([diseaseId, perSentinel]) => ({
         id: diseaseId,
@@ -556,11 +566,17 @@ export const handler = async (): Promise<void> => {
       disease.twoWeeksAgoCount = counts[counts.length - 2] ?? 0;
     }
 
-    // AI コメント (level > 0 の疾患のみ生成、キャッシュあり)
-    // 並列実行数を制限してスロットリングを回避
-    const diseaseCommentTasks = diseaseBreakdown
-      .filter((disease) => disease.level > 0)
-      .map((disease) =>
+    prefDataList.push({ prefId, prefName, level, flu, covid, diseaseBreakdown });
+  }
+
+  // AI コメント生成タスクを全都道府県分まとめて並列実行制限
+  const allAiTasks: Promise<void>[] = [];
+
+  for (const { prefId, prefName, level, flu, covid, diseaseBreakdown } of prefDataList) {
+    // 疾患別 AI コメント (level > 0 のみ)
+    for (const disease of diseaseBreakdown) {
+      if (disease.level === 0) continue;
+      allAiTasks.push(
         limit(async () => {
           try {
             disease.aiComment = await generateDiseaseComment(
@@ -571,17 +587,24 @@ export const handler = async (): Promise<void> => {
           }
         })
       );
-
-    await Promise.all(diseaseCommentTasks);
-
-    let aiSummary = "";
-    try {
-      aiSummary = await generatePrefSummary(bedrock, prefId, level, flu, covid);
-    } catch (err) {
-      logger.warn({ prefId, err }, "都道府県 AI サマリー生成失敗 — スキップ");
     }
-    prefectures.push({ id: prefId, level, aiSummary, diseases: diseaseBreakdown });
+
+    // 都道府県サマリー
+    allAiTasks.push(
+      limit(async () => {
+        try {
+          const aiSummary = await generatePrefSummary(bedrock, prefId, level, flu, covid);
+          prefectures.push({ id: prefId, level, aiSummary, diseases: diseaseBreakdown });
+        } catch (err) {
+          logger.warn({ prefId, err }, "都道府県 AI サマリー生成失敗 — スキップ");
+          prefectures.push({ id: prefId, level, aiSummary: "", diseases: diseaseBreakdown });
+        }
+      })
+    );
   }
+
+  // 全タスクを並列実行（制限付き）
+  await Promise.all(allAiTasks);
 
   await putSnapshot("PREFECTURE_STATUS", weekKey, {
     prefectures,
