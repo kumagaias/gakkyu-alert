@@ -12,9 +12,9 @@
   },
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "^3.800.0",
-    "@vendia/serverless-express": "^4.10.4",
     "@aws-sdk/client-dynamodb": "^3.800.0",
     "@aws-sdk/lib-dynamodb": "^3.800.0",
+    "@vendia/serverless-express": "^4.10.4",
     "@workspace/api-zod": "workspace:*",
     "@workspace/db": "workspace:*",
     "cookie-parser": "^1.4.7",
@@ -22,12 +22,13 @@
     "drizzle-orm": "catalog:",
     "express": "^5",
     "iconv-lite": "^0.6.3",
+    "p-limit": "^7.3.0",
     "pino": "^9",
     "pino-http": "^10"
   },
   "devDependencies": {
-    "@types/cookie-parser": "^1.4.10",
     "@types/aws-lambda": "^8.10.149",
+    "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/node": "catalog:",

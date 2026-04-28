@@ -17,6 +17,7 @@ import {
   BedrockRuntimeClient,
   InvokeModelCommand,
 } from "@aws-sdk/client-bedrock-runtime";
+import pLimit from "p-limit";
 import { fetchLatestIdwrData, PREF_ID_MAP, type IdwrRecord } from "../lib/idwr.js";
 import {
   fetchLatestTmiphData,
@@ -36,6 +37,9 @@ import { logger } from "../lib/logger.js";
 // Amazon Nova Lite — Haiku より安価、日本語品質十分
 const NOVA_MODEL = "amazon.nova-lite-v1:0";
 const WEEKLY_HISTORY_WEEKS = 8;
+
+// Bedrock API レート制限対策: 同時実行数を制限
+const BEDROCK_CONCURRENCY = 3;
 
 // 都道府県の日本語名
 const PREF_NAMES: Record<string, string> = Object.fromEntries(
@@ -140,20 +144,45 @@ async function invokeNova(
   prompt: string,
   maxTokens = 200
 ): Promise<string> {
-  const res = await client.send(
-    new InvokeModelCommand({
-      modelId: NOVA_MODEL,
-      contentType: "application/json",
-      accept: "application/json",
-      body: JSON.stringify({
-        messages: [{ role: "user", content: [{ text: prompt }] }],
-        inferenceConfig: { max_new_tokens: maxTokens },
-      }),
-    })
-  );
-  const body = JSON.parse(new TextDecoder().decode(res.body)) as NovaResponseBody;
-  await sleep(800);
-  return body.output?.message?.content?.[0]?.text?.trim() ?? "";
+  const maxRetries = 3;
+  let lastError: Error | undefined;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const res = await client.send(
+        new InvokeModelCommand({
+          modelId: NOVA_MODEL,
+          contentType: "application/json",
+          accept: "application/json",
+          body: JSON.stringify({
+            messages: [{ role: "user", content: [{ text: prompt }] }],
+            inferenceConfig: { max_new_tokens: maxTokens },
+          }),
+        })
+      );
+      const body = JSON.parse(new TextDecoder().decode(res.body)) as NovaResponseBody;
+      
+      // スロットリング対策: リクエスト間隔を長めに設定
+      await sleep(1500);
+      
+      return body.output?.message?.content?.[0]?.text?.trim() ?? "";
+    } catch (err) {
+      lastError = err as Error;
+      
+      // ThrottlingException の場合は exponential backoff でリトライ
+      if (err && typeof err === "object" && "name" in err && err.name === "ThrottlingException") {
+        const backoffMs = Math.min(1000 * Math.pow(2, attempt - 1), 10000);
+        logger.warn({ attempt, backoffMs }, "Bedrock throttled, retrying...");
+        await sleep(backoffMs);
+        continue;
+      }
+      
+      // その他のエラーは即座に throw
+      throw err;
+    }
+  }
+  
+  throw lastError ?? new Error("invokeNova failed after retries");
 }
 
 // ---------------------------------------------------------------------------
@@ -493,6 +522,9 @@ export const handler = async (): Promise<void> => {
     diseases: PrefDiseaseEntry[];
   }> = [];
 
+  // 並列実行制限を設定
+  const limit = pLimit(BEDROCK_CONCURRENCY);
+
   for (const [prefId, { flu, covid, all }] of prefMap) {
     const level = prefLevel(flu, covid);
     const prefName = PREF_NAMES[prefId] ?? prefId;
@@ -525,17 +557,22 @@ export const handler = async (): Promise<void> => {
     }
 
     // AI コメント (level > 0 の疾患のみ生成、キャッシュあり)
-    // level = 0 (平穏) はコメント不要 → Bedrock 呼び出し数を大幅削減
-    for (const disease of diseaseBreakdown) {
-      if (disease.level === 0) continue;
-      try {
-        disease.aiComment = await generateDiseaseComment(
-          bedrock, prefId, prefName, disease.id, disease.perSentinel, disease.level
-        );
-      } catch (err) {
-        logger.warn({ prefId, diseaseId: disease.id, err }, "都道府県疾患 AI コメント生成失敗 — スキップ");
-      }
-    }
+    // 並列実行数を制限してスロットリングを回避
+    const diseaseCommentTasks = diseaseBreakdown
+      .filter((disease) => disease.level > 0)
+      .map((disease) =>
+        limit(async () => {
+          try {
+            disease.aiComment = await generateDiseaseComment(
+              bedrock, prefId, prefName, disease.id, disease.perSentinel, disease.level
+            );
+          } catch (err) {
+            logger.warn({ prefId, diseaseId: disease.id, err }, "都道府県疾患 AI コメント生成失敗 — スキップ");
+          }
+        })
+      );
+
+    await Promise.all(diseaseCommentTasks);
 
     let aiSummary = "";
     try {
