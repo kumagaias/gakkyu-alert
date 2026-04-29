@@ -21,6 +21,7 @@ interface Props {
   district?: District | null;
   prefClosure?: PrefClosureStatus;
   prefName?: string;
+  prefId?: string;
 }
 
 const SYSTEM_URL = "https://www.gakkohoken.jp/system_information/";
@@ -117,12 +118,15 @@ function ClosureRow({
 /** 都道府県別閉鎖クラス表示（学校等欠席者・感染症情報システムデータ） */
 function PrefClosureContent({
   prefClosure,
+  prefId,
   onPress,
 }: {
   prefClosure: PrefClosureStatus;
+  prefId?: string;
   onPress: (entry: SchoolClosureEntry) => void;
 }) {
   const colors = useColors();
+  const { prefectures } = useStatusData();
 
   if (!prefClosure.hasData) {
     return (
@@ -140,14 +144,17 @@ function PrefClosureContent({
     );
   }
 
+  const pref = prefId ? prefectures.find((p) => p.id === prefId) : undefined;
+
   const entries: SchoolClosureEntry[] = prefClosure.diseases.map((d) => {
     const disease = DISEASES.find((dis) => dis.id === d.id);
+    const prefDisease = pref?.diseases?.find((pd) => pd.id === d.id);
     return {
       diseaseId: d.id,
       diseaseName: disease?.name ?? FALLBACK_DISEASE_NAMES[d.id] ?? d.id,
       closedClasses: d.closedClasses,
       weekAgoClasses: d.weekAgoClasses,
-      weeklyHistory: [],
+      weeklyHistory: prefDisease?.weeklyHistory ?? [],
     };
   }).sort((a, b) => b.closedClasses - a.closedClasses);
 
@@ -173,7 +180,7 @@ function PrefClosureContent({
   );
 }
 
-export function SchoolClosureCard({ district, prefClosure, prefName }: Props) {
+export function SchoolClosureCard({ district, prefClosure, prefName, prefId }: Props) {
   const colors = useColors();
   const { schoolClosures } = useStatusData();
   const [expanded, setExpanded] = useState(false);
@@ -201,7 +208,7 @@ export function SchoolClosureCard({ district, prefClosure, prefName }: Props) {
           )}
         </View>
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <PrefClosureContent prefClosure={prefClosure} onPress={setSelectedEntry} />
+          <PrefClosureContent prefClosure={prefClosure} prefId={prefId} onPress={setSelectedEntry} />
         </View>
         <SchoolClosureModal
           entry={selectedEntry}

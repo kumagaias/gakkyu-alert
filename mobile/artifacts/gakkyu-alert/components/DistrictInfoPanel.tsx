@@ -72,6 +72,7 @@ export function DistrictInfoPanel({ district, showFootnote = true }: Props) {
             district={district}
             prefClosure={prefClosureMap[district.id] ?? { id: district.id, hasData: false, diseases: [] }}
             prefName={district.name}
+            prefId={district.id}
           />
       }
 
