@@ -159,8 +159,27 @@ function PrefClosureContent({
   }).sort((a, b) => b.closedClasses - a.closedClasses);
 
   const totalClosed = entries.reduce((sum, e) => sum + e.closedClasses, 0);
+  
+  // 過去データがある疾患（weeklyHistoryに0以外がある）
+  const entriesWithHistory = entries.filter((e) => 
+    e.weeklyHistory.some((v) => v > 0)
+  );
 
-  if (entries.length === 0 || totalClosed === 0) {
+  if (entries.length === 0) {
+    return (
+      <View style={styles.allClearRow}>
+        <Feather name="check-circle" size={14} color={colors.success} />
+        <Text style={[styles.allClearText, { color: colors.success }]}>
+          現在、学級閉鎖の報告はありません
+        </Text>
+      </View>
+    );
+  }
+
+  // 現在閉鎖0でも、過去データがあれば表示
+  const visibleEntries = totalClosed > 0 ? entries : entriesWithHistory;
+
+  if (visibleEntries.length === 0) {
     return (
       <View style={styles.allClearRow}>
         <Feather name="check-circle" size={14} color={colors.success} />
@@ -173,7 +192,15 @@ function PrefClosureContent({
 
   return (
     <>
-      {entries.map((entry, i) => (
+      {totalClosed === 0 && (
+        <View style={[styles.allClearRow, { marginBottom: 8 }]}>
+          <Feather name="check-circle" size={14} color={colors.success} />
+          <Text style={[styles.allClearText, { color: colors.success }]}>
+            現在、学級閉鎖の報告はありません
+          </Text>
+        </View>
+      )}
+      {visibleEntries.map((entry, i) => (
         <ClosureRow key={entry.diseaseId} entry={entry} isFirst={i === 0} onPress={onPress} />
       ))}
     </>
