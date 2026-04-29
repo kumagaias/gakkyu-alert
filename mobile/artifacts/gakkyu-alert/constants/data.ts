@@ -42,7 +42,8 @@ export interface PrefectureDisease {
 export interface PrefClosureDisease {
   id: string;             // 疾患ID (例: "flu", "covid")
   closedClasses: number;  // 今週の閉鎖クラス数
-  weekAgoClasses: number; // 先週の閉鎖クラス数
+  weekAgoClasses?: number; // 先週の閉鎖クラス数（オプション）
+  weeklyHistory?: number[]; // 過去8週分の推移（オプション）
 }
 
 export interface PrefClosureStatus {

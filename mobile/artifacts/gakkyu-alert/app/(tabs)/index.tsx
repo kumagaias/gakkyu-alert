@@ -22,7 +22,7 @@ export default function HomeScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { homeDistrict, children, notifications, isOnboarded } = useApp();
-  const { prefectures, schoolClosures } = useStatusData();
+  const { prefectures, schoolClosures, refetch } = useStatusData();
   const [refreshing, setRefreshing] = useState(false);
 
   const topPad = Platform.OS === "web" ? 0 : insets.top;
@@ -35,9 +35,10 @@ export default function HomeScreen() {
     ? { ...homeDistrict, ...(prefectures.find((p) => p.id === homeDistrict.id) ?? {}) }
     : null;
 
-  const onRefresh = () => {
+  const onRefresh = async () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 1000);
+    await refetch();
+    setRefreshing(false);
   };
 
   return (
@@ -102,7 +103,7 @@ export default function HomeScreen() {
                 onPress={() => router.push("/(tabs)/settings")}
               />
             )}
-            {!notifications.enabled && (
+            {!notifications.enabled && Platform.OS !== 'web' && (
               <BannerCard
                 icon="bell"
                 title="Push通知をオンにする"

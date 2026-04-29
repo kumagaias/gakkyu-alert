@@ -21,10 +21,18 @@ const BAR_MAX_W = width - 80;
 
 const CHART_W = Math.min(width - 48, 640);
 const CHART_H = 120;
-const PAD = { top: 12, bottom: 28, left: 32, right: 16 };
+const PAD = { top: 12, bottom: 28, left: 32, right: 24 };
+
+function weekDateToLabels(weekDate: string | null): string[] {
+  const base = weekDate ? new Date(weekDate) : new Date();
+  return [-4, -3, -2, -1, 0, 1, 2].map((offset) => {
+    const d = new Date(base.getTime() + offset * 7 * 86_400_000);
+    return `${d.getMonth() + 1}/${d.getDate()}`;
+  });
+}
 
 /** 過去4週 + 未来2週の折れ線グラフ */
-function TrendLineChart({ history, current, level }: { history: number[]; current: number; level: EpidemicLevel }) {
+function TrendLineChart({ history, current, level, weekDate }: { history: number[]; current: number; level: EpidemicLevel; weekDate: string | null }) {
   const colors = useColors();
   const levelColors: Record<EpidemicLevel, string> = {
     0: colors.level0, 1: colors.level1, 2: colors.level2, 3: colors.level3,
@@ -58,7 +66,7 @@ function TrendLineChart({ history, current, level }: { history: number[]; curren
     .map((v, i) => `${i === 0 ? "M" : "L"}${xOf(realPoints.length - 1 + i).toFixed(1)},${yOf(v).toFixed(1)}`)
     .join(" ");
 
-  const labels = ["-4W", "-3W", "-2W", "-1W", "今週", "+1W", "+2W"];
+  const labels = weekDate ? weekDateToLabels(weekDate) : ["-4W", "-3W", "-2W", "-1W", "今週", "+1W", "+2W"];
 
   return (
     <Svg width={CHART_W} height={CHART_H}>
@@ -104,8 +112,11 @@ function TrendLineChart({ history, current, level }: { history: number[]; curren
           fontSize={9} fill={i >= 5 ? colors.mutedForeground + "99" : colors.mutedForeground}
         >{l}</SvgText>
       ))}
-      {/* 今週の値ラベル — 上端クリップを防ぐため最低 12px を確保 */}
-      <SvgText x={xOf(4)} y={Math.max(yOf(current) - 8, 12)} textAnchor="middle"
+      {/* 今週の値ラベル — 上端クリップを防ぐため最低 12px を確保、右端クリップを防ぐため "end" */}
+      <SvgText
+        x={xOf(4) + 5}
+        y={Math.max(yOf(current) - 8, 12)}
+        textAnchor="end"
         fontSize={10} fontWeight="700" fill={lineColor}
       >{current.toFixed(1)}</SvgText>
     </Svg>
@@ -114,6 +125,7 @@ function TrendLineChart({ history, current, level }: { history: number[]; curren
 
 interface Props {
   disease: Disease | null;
+  weekDate?: string | null;
   onClose: () => void;
 }
 
@@ -145,7 +157,7 @@ const INSTITUTION_ROWS = [
   { key: "gakko" as const,   label: "小学校〜高校（共通）",   icon: "book" as const },
 ];
 
-export function DiseaseModal({ disease, onClose }: Props) {
+export function DiseaseModal({ disease, weekDate, onClose }: Props) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
 
@@ -210,6 +222,7 @@ export function DiseaseModal({ disease, onClose }: Props) {
                 history={disease.weeklyHistory}
                 current={disease.currentCount}
                 level={disease.currentLevel}
+                weekDate={weekDate ?? null}
               />
             </View>
             <View style={styles.chartLegendRow}>

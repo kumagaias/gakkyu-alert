@@ -17,6 +17,7 @@ import {
   BedrockRuntimeClient,
   InvokeModelCommand,
 } from "@aws-sdk/client-bedrock-runtime";
+import pLimit from "p-limit";
 import { fetchLatestIdwrData, PREF_ID_MAP, type IdwrRecord } from "../lib/idwr.js";
 import {
   fetchLatestTmiphData,
@@ -36,6 +37,9 @@ import { logger } from "../lib/logger.js";
 // Amazon Nova Lite — Haiku より安価、日本語品質十分
 const NOVA_MODEL = "amazon.nova-lite-v1:0";
 const WEEKLY_HISTORY_WEEKS = 8;
+
+// Bedrock API レート制限対策: 同時実行数を制限
+const BEDROCK_CONCURRENCY = 1;
 
 // 都道府県の日本語名
 const PREF_NAMES: Record<string, string> = Object.fromEntries(
@@ -69,6 +73,14 @@ const COVID_THRESHOLDS = [
   { level: 2, min: 10 },
   { level: 1, min: 2  },
   { level: 0, min: 0  },
+] as const;
+
+// 学級閉鎖数ベースの閾値（都道府県単位）
+const CLOSURE_THRESHOLDS = [
+  { level: 3, min: 30 },  // 流行: 30クラス以上
+  { level: 2, min: 10 },  // 警戒: 10クラス以上
+  { level: 1, min: 1  },  // 注意: 1クラス以上
+  { level: 0, min: 0  },  // なし
 ] as const;
 
 // ---------------------------------------------------------------------------
@@ -140,20 +152,45 @@ async function invokeNova(
   prompt: string,
   maxTokens = 200
 ): Promise<string> {
-  const res = await client.send(
-    new InvokeModelCommand({
-      modelId: NOVA_MODEL,
-      contentType: "application/json",
-      accept: "application/json",
-      body: JSON.stringify({
-        messages: [{ role: "user", content: [{ text: prompt }] }],
-        inferenceConfig: { max_new_tokens: maxTokens },
-      }),
-    })
-  );
-  const body = JSON.parse(new TextDecoder().decode(res.body)) as NovaResponseBody;
-  await sleep(800);
-  return body.output?.message?.content?.[0]?.text?.trim() ?? "";
+  const maxRetries = 3;
+  let lastError: Error | undefined;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const res = await client.send(
+        new InvokeModelCommand({
+          modelId: NOVA_MODEL,
+          contentType: "application/json",
+          accept: "application/json",
+          body: JSON.stringify({
+            messages: [{ role: "user", content: [{ text: prompt }] }],
+            inferenceConfig: { max_new_tokens: maxTokens },
+          }),
+        })
+      );
+      const body = JSON.parse(new TextDecoder().decode(res.body)) as NovaResponseBody;
+      
+      // スロットリング対策: リクエスト間隔を長めに設定
+      await sleep(3000);
+      
+      return body.output?.message?.content?.[0]?.text?.trim() ?? "";
+    } catch (err) {
+      lastError = err as Error;
+      
+      // ThrottlingException の場合は exponential backoff でリトライ
+      if (err && typeof err === "object" && "name" in err && err.name === "ThrottlingException") {
+        const backoffMs = Math.min(1000 * Math.pow(2, attempt - 1), 30000);
+        logger.warn({ attempt, backoffMs }, "Bedrock throttled, retrying...");
+        await sleep(backoffMs);
+        continue;
+      }
+      
+      // その他のエラーは即座に throw
+      throw err;
+    }
+  }
+  
+  throw lastError ?? new Error("invokeNova failed after retries");
 }
 
 // ---------------------------------------------------------------------------
@@ -493,11 +530,24 @@ export const handler = async (): Promise<void> => {
     diseases: PrefDiseaseEntry[];
   }> = [];
 
+  // 並列実行制限を設定（全都道府県で共有）
+  const limit = pLimit(BEDROCK_CONCURRENCY);
+
+  // 全都道府県のデータ準備（週次履歴構築）
+  const prefDataList: Array<{
+    prefId: string;
+    prefName: string;
+    level: 0 | 1 | 2 | 3;
+    flu: number;
+    covid: number;
+    diseaseBreakdown: PrefDiseaseEntry[];
+  }> = [];
+
   for (const [prefId, { flu, covid, all }] of prefMap) {
     const level = prefLevel(flu, covid);
     const prefName = PREF_NAMES[prefId] ?? prefId;
 
-    // 疾患ごとに週次履歴・AI を構築
+    // 疾患ごとに週次履歴を構築
     const diseaseBreakdown: PrefDiseaseEntry[] = Array.from(all.entries()).map(
       ([diseaseId, perSentinel]) => ({
         id: diseaseId,
@@ -524,26 +574,67 @@ export const handler = async (): Promise<void> => {
       disease.twoWeeksAgoCount = counts[counts.length - 2] ?? 0;
     }
 
-    // AI コメント (level > 0 の疾患のみ生成、キャッシュあり)
-    // level = 0 (平穏) はコメント不要 → Bedrock 呼び出し数を大幅削減
+    prefDataList.push({ prefId, prefName, level, flu, covid, diseaseBreakdown });
+  }
+
+  // AI コメント生成タスクを全都道府県分まとめて並列実行制限
+  const allAiTasks: Promise<void>[] = [];
+
+  for (const { prefId, prefName, level, flu, covid, diseaseBreakdown } of prefDataList) {
+    // 疾患別 AI コメント (level > 0 のみ)
     for (const disease of diseaseBreakdown) {
       if (disease.level === 0) continue;
-      try {
-        disease.aiComment = await generateDiseaseComment(
-          bedrock, prefId, prefName, disease.id, disease.perSentinel, disease.level
-        );
-      } catch (err) {
-        logger.warn({ prefId, diseaseId: disease.id, err }, "都道府県疾患 AI コメント生成失敗 — スキップ");
-      }
+      allAiTasks.push(
+        limit(async () => {
+          try {
+            disease.aiComment = await generateDiseaseComment(
+              bedrock, prefId, prefName, disease.id, disease.perSentinel, disease.level
+            );
+          } catch (err) {
+            logger.warn({ prefId, diseaseId: disease.id, err }, "都道府県疾患 AI コメント生成失敗 — スキップ");
+          }
+        })
+      );
     }
 
-    let aiSummary = "";
-    try {
-      aiSummary = await generatePrefSummary(bedrock, prefId, level, flu, covid);
-    } catch (err) {
-      logger.warn({ prefId, err }, "都道府県 AI サマリー生成失敗 — スキップ");
+    // 都道府県サマリー
+    allAiTasks.push(
+      limit(async () => {
+        try {
+          const aiSummary = await generatePrefSummary(bedrock, prefId, level, flu, covid);
+          prefectures.push({ id: prefId, level, aiSummary, diseases: diseaseBreakdown });
+        } catch (err) {
+          logger.warn({ prefId, err }, "都道府県 AI サマリー生成失敗 — スキップ");
+          prefectures.push({ id: prefId, level, aiSummary: "", diseases: diseaseBreakdown });
+        }
+      })
+    );
+  }
+
+  // 全タスクを並列実行（制限付き）
+  await Promise.all(allAiTasks);
+
+  // 学級閉鎖データを取得して流行レベルを再計算
+  const latestClosure = await getSnapshotByKey<{ prefectures: Array<{ id: string; hasData: boolean; diseases: Array<{ id: string; closedClasses: number }> }> }>(
+    "CLOSURE_BY_PREF",
+    weekKey
+  );
+
+  function calcClosureLevel(closedClasses: number): 0 | 1 | 2 | 3 {
+    if (closedClasses >= 30) return 3;
+    if (closedClasses >= 10) return 2;
+    if (closedClasses >= 1) return 1;
+    return 0;
+  }
+
+  // 定点サーベイランスと学級閉鎖の両方を考慮して流行レベルを再計算
+  for (const pref of prefectures) {
+    const closure = latestClosure?.prefectures?.find((p) => p.id === pref.id);
+    if (closure?.hasData) {
+      const totalClosed = closure.diseases.reduce((sum, d) => sum + d.closedClasses, 0);
+      const closureLevel = calcClosureLevel(totalClosed);
+      pref.level = Math.max(pref.level, closureLevel);
     }
-    prefectures.push({ id: prefId, level, aiSummary, diseases: diseaseBreakdown });
   }
 
   await putSnapshot("PREFECTURE_STATUS", weekKey, {

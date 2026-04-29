@@ -21,7 +21,7 @@ interface Props {
 
 export function DistrictInfoPanel({ district, showFootnote = true }: Props) {
   const colors = useColors();
-  const { diseases: tokyoDiseases, prefClosureMap, schoolClosures } = useStatusData();
+  const { diseases: tokyoDiseases, prefClosureMap, schoolClosures, diseaseWeekDate } = useStatusData();
 
   // 学校閉鎖データから来週の見通し（閉鎖クラス数が多い順、なければ最初の非空文字列）
   const topOutlook = schoolClosures.entries
@@ -72,6 +72,7 @@ export function DistrictInfoPanel({ district, showFootnote = true }: Props) {
             district={district}
             prefClosure={prefClosureMap[district.id] ?? { id: district.id, hasData: false, diseases: [] }}
             prefName={district.name}
+            prefId={district.id}
           />
       }
 
@@ -139,7 +140,7 @@ export function DistrictInfoPanel({ district, showFootnote = true }: Props) {
       </View>
 
       {/* Disease detail modal */}
-      <DiseaseModal disease={selectedDisease} onClose={() => setSelectedDisease(null)} />
+      <DiseaseModal disease={selectedDisease} weekDate={diseaseWeekDate} onClose={() => setSelectedDisease(null)} />
     </>
   );
 }

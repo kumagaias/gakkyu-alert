@@ -1,4 +1,5 @@
 import Constants from "expo-constants";
+import * as Device from "expo-device";
 import { Platform } from "react-native";
 import { useEffect, useRef } from "react";
 import { useRegisterDevice, useDeregisterDevice } from "@workspace/api-client-react";
@@ -81,6 +82,7 @@ export function useNotificationSetup() {
           homeDistrictId: homeDistrictId ?? "",
           extraDistrictIds: extraDistrictIds,
           alertLevel: notifications.alertLevel,
+          deviceModel: Device.modelName ?? undefined,
         },
       });
     }

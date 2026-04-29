@@ -76,13 +76,24 @@ router.get("/status", async (_req, res) => {
           id: d.id as string,
           closedClasses: (d.closedClasses ?? 0) as number,
           weekAgoClasses: ((prevD?.closedClasses) ?? 0) as number,
+          weeklyHistory: (d.weeklyHistory ?? []) as number[],
         };
       });
       return { id: p.id as string, hasData: true, diseases };
     });
 
+    // "2026-W15" → last day of that week as "YYYY-MM-DD"
+    const diseaseWeekDate = (() => {
+      const sk = diseaseSnap?.sk as string | undefined;
+      const m = sk?.match(/^(\d{4})-W(\d{1,2})$/);
+      if (!m) return new Date().toISOString().slice(0, 10);
+      const d = new Date(parseInt(m[1], 10), 0, parseInt(m[2], 10) * 7);
+      return d.toISOString().slice(0, 10);
+    })();
+
     res.json({
       asOf: new Date().toISOString(),
+      diseaseWeekDate,
       schoolClosures,
       diseases,
       districts,

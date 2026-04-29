@@ -20,12 +20,14 @@ export interface StatusData {
   prefectures: Prefecture[];
   prefClosureMap: Record<string, PrefClosureStatus>;
   asOf: string | null;
+  diseaseWeekDate: string | null;
   isLoading: boolean;
   isError: boolean;
+  refetch: () => void;
 }
 
 export function useStatusData(): StatusData {
-  const { data, isLoading, isError } = useGetStatus();
+  const { data, isLoading, isError, refetch } = useGetStatus();
 
   if (!data) {
     return {
@@ -35,8 +37,10 @@ export function useStatusData(): StatusData {
       prefectures: PREFECTURES,
       prefClosureMap: {},
       asOf: null,
+      diseaseWeekDate: null,
       isLoading,
       isError,
+      refetch,
     };
   }
 
@@ -79,7 +83,7 @@ export function useStatusData(): StatusData {
     0
   ) as EpidemicLevel;
 
-  // 都道府県: API データを静的リストにオーバーレイ (prefectures より先に計算)
+  // 都道府県: API データを静的リストにオーバーレイ
   const prefectures: Prefecture[] = PREFECTURES.map((p) => {
     const api = data.prefectures?.find((ap) => ap.id === p.id);
     if (!api) return p;
@@ -106,5 +110,5 @@ export function useStatusData(): StatusData {
     prefClosureMap[pc.id] = pc as PrefClosureStatus;
   }
 
-  return { diseases, schoolClosures, districts, prefectures, prefClosureMap, asOf: data.asOf, isLoading, isError };
+  return { diseases, schoolClosures, districts, prefectures, prefClosureMap, asOf: data.asOf, diseaseWeekDate: (data as Record<string, unknown>).diseaseWeekDate as string ?? null, isLoading, isError, refetch };
 }
