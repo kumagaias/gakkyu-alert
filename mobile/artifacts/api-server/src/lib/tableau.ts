@@ -69,7 +69,7 @@ const NON_PARTICIPATING_PREFS = new Set([
 export interface PrefClosureEntry {
   id: string;       // prefId
   hasData: boolean;
-  diseases: Array<{ id: string; closedClasses: number }>;
+  diseases: Array<{ id: string; closedClasses: number; weeklyHistory: number[] }>;
 }
 
 /**
@@ -98,12 +98,35 @@ export async function fetchAllPrefClosures(): Promise<{
 
   const weekKey = isoWeekKey(monday);
 
-  // 都道府県×疾患の組み合わせを並列取得（p-limit で同時実行数を制限）
+  // 過去8週分の月曜日を計算
+  const weeks: Date[] = [];
+  for (let i = 7; i >= 0; i--) {
+    const w = new Date(monday);
+    w.setDate(monday.getDate() - i * 7);
+    weeks.push(w);
+  }
+
+  // 都道府県×疾患×週の組み合わせを並列取得
   const prefCodes = Object.keys(PREF_CODE_MAP);
   const CONCURRENCY = 5;
 
-  // 都道府県ごとに全疾患を取得
-  const prefResults = new Map<string, Map<string, number>>();
+  // 都道府県ごとに全疾患×全週を取得
+  const prefResults = new Map<string, Map<string, number[]>>();
+
+  const prefNameMap: Record<string, string> = {
+    "01": "北海道", "02": "青森県", "03": "岩手県", "04": "宮城県",
+    "05": "秋田県", "06": "山形県", "07": "福島県", "08": "茨城県",
+    "09": "栃木県", "10": "群馬県", "11": "埼玉県", "12": "千葉県",
+    "13": "東京都", "14": "神奈川県", "15": "新潟県", "16": "富山県",
+    "17": "石川県", "18": "福井県", "19": "山梨県", "20": "長野県",
+    "21": "岐阜県", "22": "静岡県", "23": "愛知県", "24": "三重県",
+    "25": "滋賀県", "26": "京都府", "27": "大阪府", "28": "兵庫県",
+    "29": "奈良県", "30": "和歌山県", "31": "鳥取県", "32": "島根県",
+    "33": "岡山県", "34": "広島県", "35": "山口県", "36": "徳島県",
+    "37": "香川県", "38": "愛媛県", "39": "高知県", "40": "福岡県",
+    "41": "佐賀県", "42": "長崎県", "43": "熊本県", "44": "大分県",
+    "45": "宮崎県", "46": "鹿児島県", "47": "沖縄県",
+  };
 
   for (let i = 0; i < prefCodes.length; i += CONCURRENCY) {
     const batch = prefCodes.slice(i, i + CONCURRENCY);
@@ -111,30 +134,10 @@ export async function fetchAllPrefClosures(): Promise<{
       const prefId = PREF_CODE_MAP[code];
       if (NON_PARTICIPATING_PREFS.has(prefId)) return;
 
-      const diseaseMap = new Map<string, number>();
+      const diseaseHistoryMap = new Map<string, number[]>();
 
       await Promise.all(CLOSURE_DISEASES.map(async (disease) => {
         try {
-          const params = new URLSearchParams({
-            ":showVizHome": "no",
-            都道府県: `${code}:${Object.entries(PREF_CODE_MAP).find(([, v]) => v === prefId)?.[0] ?? code}`,
-            疾患名等: `${disease.code}:${disease.name}`,
-          });
-          // 都道府県名を日本語で渡す必要があるため別途マップ
-          const prefNameMap: Record<string, string> = {
-            "01": "北海道", "02": "青森県", "03": "岩手県", "04": "宮城県",
-            "05": "秋田県", "06": "山形県", "07": "福島県", "08": "茨城県",
-            "09": "栃木県", "10": "群馬県", "11": "埼玉県", "12": "千葉県",
-            "13": "東京都", "14": "神奈川県", "15": "新潟県", "16": "富山県",
-            "17": "石川県", "18": "福井県", "19": "山梨県", "20": "長野県",
-            "21": "岐阜県", "22": "静岡県", "23": "愛知県", "24": "三重県",
-            "25": "滋賀県", "26": "京都府", "27": "大阪府", "28": "兵庫県",
-            "29": "奈良県", "30": "和歌山県", "31": "鳥取県", "32": "島根県",
-            "33": "岡山県", "34": "広島県", "35": "山口県", "36": "徳島県",
-            "37": "香川県", "38": "愛媛県", "39": "高知県", "40": "福岡県",
-            "41": "佐賀県", "42": "長崎県", "43": "熊本県", "44": "大分県",
-            "45": "宮崎県", "46": "鹿児島県", "47": "沖縄県",
-          };
           const p = new URLSearchParams({
             ":showVizHome": "no",
             都道府県: `${code}:${prefNameMap[code]}`,
@@ -160,22 +163,32 @@ export async function fetchAllPrefClosures(): Promise<{
           if (!text.includes(",")) return;
 
           const rows = parseCsvText(text);
-          // 今週分（直近14日以内）の閉鎖クラス数を合計
-          const cutoff = Date.now() - 14 * 24 * 60 * 60 * 1000;
-          let total = 0;
-          for (const row of rows) {
-            if (row["Measure Names"] !== "閉鎖クラス数") continue;
-            const d = new Date(row["Day of 表示年月日"]);
-            if (isNaN(d.getTime()) || d.getTime() < cutoff) continue;
-            total += parseInt(row["Measure Values"] ?? "0", 10) || 0;
+          
+          // 週ごとに集計
+          const weeklyData: number[] = [];
+          for (const weekStart of weeks) {
+            const weekEnd = new Date(weekStart);
+            weekEnd.setDate(weekStart.getDate() + 7);
+            
+            let total = 0;
+            for (const row of rows) {
+              if (row["Measure Names"] !== "閉鎖クラス数") continue;
+              const d = new Date(row["Day of 表示年月日"]);
+              if (isNaN(d.getTime())) continue;
+              if (d >= weekStart && d < weekEnd) {
+                total += parseInt(row["Measure Values"] ?? "0", 10) || 0;
+              }
+            }
+            weeklyData.push(total);
           }
-          if (total > 0) diseaseMap.set(disease.diseaseId, total);
+          
+          diseaseHistoryMap.set(disease.diseaseId, weeklyData);
         } catch {
           // 取得失敗は無視
         }
       }));
 
-      prefResults.set(prefId, diseaseMap);
+      prefResults.set(prefId, diseaseHistoryMap);
     }));
   }
 
@@ -183,14 +196,18 @@ export async function fetchAllPrefClosures(): Promise<{
     if (NON_PARTICIPATING_PREFS.has(prefId)) {
       return { id: prefId, hasData: false, diseases: [] };
     }
-    const diseaseMap = prefResults.get(prefId);
-    if (!diseaseMap) {
+    const diseaseHistoryMap = prefResults.get(prefId);
+    if (!diseaseHistoryMap) {
       return { id: prefId, hasData: true, diseases: [] };
     }
     return {
       id: prefId,
       hasData: true,
-      diseases: Array.from(diseaseMap.entries()).map(([id, closedClasses]) => ({ id, closedClasses })),
+      diseases: Array.from(diseaseHistoryMap.entries()).map(([id, weeklyHistory]) => ({
+        id,
+        closedClasses: weeklyHistory[7] ?? 0,
+        weeklyHistory,
+      })),
     };
   });
 
