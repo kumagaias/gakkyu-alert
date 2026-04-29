@@ -82,6 +82,26 @@ router.get("/status", async (_req, res) => {
       return { id: p.id as string, hasData: true, diseases };
     });
 
+    // 学級閉鎖数から流行レベルを計算
+    function calcClosureLevel(closedClasses: number): number {
+      if (closedClasses >= 30) return 3;
+      if (closedClasses >= 10) return 2;
+      if (closedClasses >= 1) return 1;
+      return 0;
+    }
+
+    // 都道府県の流行レベルを定点サーベイランスと学級閉鎖の両方から計算
+    const prefecturesWithLevel = prefectures.map((p) => {
+      const closure = prefClosures.find((pc) => pc.id === p.id);
+      const sentinelLevel = p.level;
+      const totalClosed = closure?.hasData 
+        ? closure.diseases.reduce((sum, d) => sum + d.closedClasses, 0)
+        : 0;
+      const closureLevel = calcClosureLevel(totalClosed);
+      const level = Math.max(sentinelLevel, closureLevel);
+      return { ...p, level };
+    });
+
     // "2026-W15" → last day of that week as "YYYY-MM-DD"
     const diseaseWeekDate = (() => {
       const sk = diseaseSnap?.sk as string | undefined;
@@ -97,7 +117,7 @@ router.get("/status", async (_req, res) => {
       schoolClosures,
       diseases,
       districts,
-      prefectures,
+      prefectures: prefecturesWithLevel,
       prefClosures,
     });
   } catch (err) {
