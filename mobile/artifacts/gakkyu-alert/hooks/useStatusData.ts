@@ -83,13 +83,35 @@ export function useStatusData(): StatusData {
     0
   ) as EpidemicLevel;
 
-  // 都道府県: API データを静的リストにオーバーレイ (prefectures より先に計算)
+  // 学級閉鎖数から流行レベルを計算
+  function calcClosureLevel(closedClasses: number): EpidemicLevel {
+    if (closedClasses >= 30) return 3;
+    if (closedClasses >= 10) return 2;
+    if (closedClasses >= 1) return 1;
+    return 0;
+  }
+
+  // 都道府県: API データを静的リストにオーバーレイ
   const prefectures: Prefecture[] = PREFECTURES.map((p) => {
     const api = data.prefectures?.find((ap) => ap.id === p.id);
-    if (!api) return p;
+    const closure = data.prefClosures?.find((pc) => pc.id === p.id);
+    
+    // 定点サーベイランスベースのレベル
+    const sentinelLevel = (api?.level ?? 0) as EpidemicLevel;
+    
+    // 学級閉鎖ベースのレベル（全疾患の合計）
+    const totalClosed = closure?.hasData 
+      ? closure.diseases.reduce((sum, d) => sum + d.closedClasses, 0)
+      : 0;
+    const closureLevel = calcClosureLevel(totalClosed);
+    
+    // 高い方を採用
+    const level = Math.max(sentinelLevel, closureLevel) as EpidemicLevel;
+    
+    if (!api) return { ...p, level };
     return {
       ...p,
-      level: api.level as EpidemicLevel,
+      level,
       aiSummary: api.aiSummary || p.aiSummary,
       diseases: (api.diseases ?? []) as PrefectureDisease[],
     };

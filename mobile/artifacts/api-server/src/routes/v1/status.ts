@@ -76,6 +76,7 @@ router.get("/status", async (_req, res) => {
           id: d.id as string,
           closedClasses: (d.closedClasses ?? 0) as number,
           weekAgoClasses: ((prevD?.closedClasses) ?? 0) as number,
+          weeklyHistory: (d.weeklyHistory ?? []) as number[],
         };
       });
       return { id: p.id as string, hasData: true, diseases };
