@@ -141,12 +141,22 @@ export async function fetchAllPrefClosures(): Promise<{
             疾患名等: `${disease.code}:${disease.name}`,
           });
           const url = `${TABLEAU_BASE}?${p}`;
-          const res = await fetch(url, {
-            headers: { "User-Agent": UA },
-            signal: AbortSignal.timeout(20_000),
-          });
-          if (!res.ok) return;
-          const text = await res.text();
+
+          // リトライ付きフェッチ（最大3回、exponential backoff）
+          let text = "";
+          for (let attempt = 1; attempt <= 3; attempt++) {
+            try {
+              const res = await fetch(url, {
+                headers: { "User-Agent": UA },
+                signal: AbortSignal.timeout(20_000),
+              });
+              if (!res.ok) break;
+              text = await res.text();
+              break;
+            } catch {
+              if (attempt < 3) await new Promise((r) => setTimeout(r, 1000 * attempt));
+            }
+          }
           if (!text.includes(",")) return;
 
           const rows = parseCsvText(text);
