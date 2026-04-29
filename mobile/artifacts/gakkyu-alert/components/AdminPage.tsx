@@ -267,6 +267,15 @@ const PUSH_TEMPLATES: { label: string; title: string; body: string }[] = [
   },
 ];
 
+interface DeviceItem {
+  token: string;
+  platform: string;
+  alertLevel: number | null;
+  homeDistrictId: string | null;
+  updatedAt: string | null;
+  deviceModel: string | null;
+}
+
 function PushTab({ token }: { token: string }) {
   const [pushToken, setPushToken] = useState("");
   const [title, setTitle] = useState(PUSH_TEMPLATES[0].title);
@@ -274,6 +283,35 @@ function PushTab({ token }: { token: string }) {
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<{ sent: number; success: number; failure: number; message?: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [devices, setDevices] = useState<DeviceItem[]>([]);
+  const [devicesLoading, setDevicesLoading] = useState(true);
+  const [nextKey, setNextKey] = useState<string | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  const fetchDevices = useCallback(async (key?: string) => {
+    const url = `/api/v1/admin/devices?limit=20${key ? `&lastKey=${key}` : ""}`;
+    const data = await adminFetch<{ devices: DeviceItem[]; nextKey: string | null }>(url, token);
+    return data;
+  }, [token]);
+
+  useEffect(() => {
+    fetchDevices()
+      .then((d) => { setDevices(d.devices); setNextKey(d.nextKey); })
+      .catch(() => {/* 無視 */})
+      .finally(() => setDevicesLoading(false));
+  }, [fetchDevices]);
+
+  const handleLoadMore = useCallback(async () => {
+    if (!nextKey || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const d = await fetchDevices(nextKey);
+      setDevices((prev) => [...prev, ...d.devices]);
+      setNextKey(d.nextKey);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [nextKey, loadingMore, fetchDevices]);
 
   const applyTemplate = useCallback((tpl: typeof PUSH_TEMPLATES[number]) => {
     setTitle(tpl.title);
@@ -323,6 +361,33 @@ function PushTab({ token }: { token: string }) {
           </Pressable>
         ))}
       </View>
+
+      <Text style={s.cardMeta}>登録デバイス一覧（タップで選択）</Text>
+      {devicesLoading ? (
+        <ActivityIndicator />
+      ) : devices.length === 0 ? (
+        <Text style={s.cardMeta}>登録デバイスなし</Text>
+      ) : (
+        <>
+          {devices.map((d) => (
+            <Pressable
+              key={d.token}
+              style={[s.deviceRow, pushToken === d.token && s.deviceRowActive]}
+              onPress={() => { setPushToken(d.token); setResult(null); setError(null); }}
+            >
+              <Text style={s.deviceToken} numberOfLines={1}>{d.token}</Text>
+              <Text style={s.deviceMeta}>
+                {d.platform}{d.deviceModel ? ` (${d.deviceModel})` : ""} · Lv{d.alertLevel ?? "?"} · {d.homeDistrictId ?? "—"}
+              </Text>
+            </Pressable>
+          ))}
+          {nextKey && (
+            <Pressable style={s.loadMoreBtn} onPress={handleLoadMore} disabled={loadingMore}>
+              <Text style={s.loadMoreText}>{loadingMore ? "読み込み中…" : "さらに読み込む"}</Text>
+            </Pressable>
+          )}
+        </>
+      )}
 
       <Text style={s.cardMeta}>送信先 Expo Push Token（必須）</Text>
       <TextInput
@@ -460,4 +525,12 @@ const s = StyleSheet.create({
   badge: { fontSize: 12, fontWeight: "600", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 4 },
   badgeOk: { backgroundColor: "#d1fae5", color: "#065f46" },
   badgeWarn: { backgroundColor: "#fef3c7", color: "#92400e" },
+
+  // Device list
+  deviceRow: { borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 8, padding: 10, marginBottom: 4 },
+  deviceRowActive: { borderColor: "#1a4bab", backgroundColor: "#eff6ff" },
+  deviceToken: { fontSize: 12, color: "#374151", fontFamily: "monospace" },
+  deviceMeta: { fontSize: 11, color: "#9ca3af", marginTop: 2 },
+  loadMoreBtn: { alignItems: "center", paddingVertical: 8, marginBottom: 4 },
+  loadMoreText: { fontSize: 13, color: "#1a4bab" },
 });

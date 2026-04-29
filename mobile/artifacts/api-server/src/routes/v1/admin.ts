@@ -1,8 +1,8 @@
 import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
-import { getLatestSnapshot, querySnapshots, queryAllDevices } from "../../lib/dynamodb.js";
+import { getLatestSnapshot, querySnapshots, queryAllDevices, queryDevicesPaged } from "../../lib/dynamodb.js";
 import { logger } from "../../lib/logger.js";
 
-interface DeviceRecord { pk: string; sk: string; }
+interface DeviceRecord { pk: string; sk: string; platform?: string; alertLevel?: number; homeDistrictId?: string; updatedAt?: string; deviceModel?: string; }
 
 async function sendExpoPush(tokens: string[], title: string, body: string): Promise<{ success: number; failure: number }> {
   const res = await fetch("https://exp.host/--/api/v2/push/send", {
@@ -136,6 +136,33 @@ router.get("/admin/diseases", async (_req, res) => {
     });
   } catch (err) {
     logger.error({ err }, "GET /v1/admin/diseases エラー");
+    res.status(500).json({ error: "サーバーエラー" });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// GET /v1/admin/devices — 登録デバイス一覧（ページング対応）
+// ---------------------------------------------------------------------------
+
+router.get("/admin/devices", async (req, res) => {
+  try {
+    const limit = Math.min(Number(req.query["limit"] ?? 20), 100);
+    const lastKey = req.query["lastKey"] ? JSON.parse(decodeURIComponent(req.query["lastKey"] as string)) : undefined;
+
+    const result = await queryDevicesPaged<DeviceRecord>({ limit, lastKey });
+    res.json({
+      devices: result.items.map((d) => ({
+        token: d.sk,
+        platform: d.platform ?? "unknown",
+        alertLevel: d.alertLevel ?? null,
+        homeDistrictId: d.homeDistrictId ?? null,
+        updatedAt: d.updatedAt ?? null,
+        deviceModel: d.deviceModel ?? null,
+      })),
+      nextKey: result.lastKey ? encodeURIComponent(JSON.stringify(result.lastKey)) : null,
+    });
+  } catch (err) {
+    logger.error({ err }, "GET /v1/admin/devices エラー");
     res.status(500).json({ error: "サーバーエラー" });
   }
 });

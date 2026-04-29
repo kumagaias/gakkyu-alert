@@ -12,12 +12,14 @@ router.post("/devices", async (req, res) => {
     homeDistrictId,
     extraDistrictIds,
     alertLevel,
+    deviceModel,
   } = req.body as {
     fcmToken: string;
     platform: string;
     homeDistrictId: string;
     extraDistrictIds?: string[];
     alertLevel: 2 | 3;
+    deviceModel?: string;
   };
 
   if (!fcmToken || !platform || !homeDistrictId || alertLevel == null) {
@@ -31,6 +33,7 @@ router.post("/devices", async (req, res) => {
       homeDistrictId,
       extraDistrictIds: extraDistrictIds ?? [],
       alertLevel,
+      ...(deviceModel ? { deviceModel } : {}),
     });
 
     res.json({ ok: true });

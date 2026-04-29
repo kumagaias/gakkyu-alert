@@ -39,7 +39,7 @@ const NOVA_MODEL = "amazon.nova-lite-v1:0";
 const WEEKLY_HISTORY_WEEKS = 8;
 
 // Bedrock API レート制限対策: 同時実行数を制限
-const BEDROCK_CONCURRENCY = 3;
+const BEDROCK_CONCURRENCY = 1;
 
 // 都道府県の日本語名
 const PREF_NAMES: Record<string, string> = Object.fromEntries(
@@ -163,7 +163,7 @@ async function invokeNova(
       const body = JSON.parse(new TextDecoder().decode(res.body)) as NovaResponseBody;
       
       // スロットリング対策: リクエスト間隔を長めに設定
-      await sleep(1500);
+      await sleep(3000);
       
       return body.output?.message?.content?.[0]?.text?.trim() ?? "";
     } catch (err) {
@@ -171,7 +171,7 @@ async function invokeNova(
       
       // ThrottlingException の場合は exponential backoff でリトライ
       if (err && typeof err === "object" && "name" in err && err.name === "ThrottlingException") {
-        const backoffMs = Math.min(1000 * Math.pow(2, attempt - 1), 10000);
+        const backoffMs = Math.min(1000 * Math.pow(2, attempt - 1), 30000);
         logger.warn({ attempt, backoffMs }, "Bedrock throttled, retrying...");
         await sleep(backoffMs);
         continue;

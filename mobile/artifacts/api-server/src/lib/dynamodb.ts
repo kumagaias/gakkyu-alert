@@ -172,3 +172,23 @@ export async function queryAllDevices<T = Record<string, unknown>>(): Promise<T[
 
   return items;
 }
+
+/** デバイスをページング取得（管理画面用） */
+export async function queryDevicesPaged<T = Record<string, unknown>>(opts: {
+  limit: number;
+  lastKey?: Record<string, unknown>;
+}): Promise<{ items: T[]; lastKey?: Record<string, unknown> }> {
+  const res = await docClient.send(
+    new QueryCommand({
+      TableName: TABLES.DEVICES,
+      KeyConditionExpression: "pk = :pk",
+      ExpressionAttributeValues: { ":pk": "DEVICE" },
+      Limit: opts.limit,
+      ...(opts.lastKey ? { ExclusiveStartKey: opts.lastKey } : {}),
+    })
+  );
+  return {
+    items: (res.Items ?? []) as T[],
+    lastKey: res.LastEvaluatedKey as Record<string, unknown> | undefined,
+  };
+}

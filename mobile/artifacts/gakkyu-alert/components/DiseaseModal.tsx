@@ -21,7 +21,7 @@ const BAR_MAX_W = width - 80;
 
 const CHART_W = Math.min(width - 48, 640);
 const CHART_H = 120;
-const PAD = { top: 12, bottom: 28, left: 32, right: 16 };
+const PAD = { top: 12, bottom: 28, left: 32, right: 24 };
 
 function weekDateToLabels(weekDate: string | null): string[] {
   const base = weekDate ? new Date(weekDate) : new Date();
@@ -112,8 +112,11 @@ function TrendLineChart({ history, current, level, weekDate }: { history: number
           fontSize={9} fill={i >= 5 ? colors.mutedForeground + "99" : colors.mutedForeground}
         >{l}</SvgText>
       ))}
-      {/* 今週の値ラベル — 上端クリップを防ぐため最低 12px を確保 */}
-      <SvgText x={xOf(4)} y={Math.max(yOf(current) - 8, 12)} textAnchor="middle"
+      {/* 今週の値ラベル — 上端クリップを防ぐため最低 12px を確保、右端クリップを防ぐため "end" */}
+      <SvgText
+        x={xOf(4) + 5}
+        y={Math.max(yOf(current) - 8, 12)}
+        textAnchor="end"
         fontSize={10} fontWeight="700" fill={lineColor}
       >{current.toFixed(1)}</SvgText>
     </Svg>
