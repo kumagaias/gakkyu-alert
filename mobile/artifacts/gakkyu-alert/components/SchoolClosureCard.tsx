@@ -159,6 +159,7 @@ function PrefClosureContent({
   }).sort((a, b) => b.closedClasses - a.closedClasses);
 
   const totalClosed = entries.reduce((sum, e) => sum + e.closedClasses, 0);
+  const [expanded, setExpanded] = useState(false);
   
   // 過去データがある疾患（weeklyHistoryに0以外がある）
   const entriesWithHistory = entries.filter((e) => 
@@ -176,8 +177,18 @@ function PrefClosureContent({
     );
   }
 
-  // 現在閉鎖0でも、過去データがあれば表示
-  const visibleEntries = totalClosed > 0 ? entries : entriesWithHistory;
+  // 現在閉鎖がある疾患
+  const activeEntries = entries.filter((e) => e.closedClasses > 0);
+  // 現在閉鎖0だが過去データがある疾患
+  const inactiveWithHistory = entries.filter((e) => 
+    e.closedClasses === 0 && e.weeklyHistory.some((v) => v > 0)
+  );
+
+  const visibleEntries = expanded 
+    ? [...activeEntries, ...inactiveWithHistory]
+    : activeEntries.length > 0 
+      ? activeEntries 
+      : inactiveWithHistory;
 
   if (visibleEntries.length === 0) {
     return (
@@ -203,6 +214,18 @@ function PrefClosureContent({
       {visibleEntries.map((entry, i) => (
         <ClosureRow key={entry.diseaseId} entry={entry} isFirst={i === 0} onPress={onPress} />
       ))}
+      {!expanded && inactiveWithHistory.length > 0 && activeEntries.length > 0 && (
+        <TouchableOpacity
+          style={[styles.expandButton, { borderColor: colors.border }]}
+          onPress={() => setExpanded(true)}
+          activeOpacity={0.7}
+        >
+          <Text style={[styles.expandText, { color: colors.mutedForeground }]}>
+            平穏の疾患をもっと見る ({inactiveWithHistory.length})
+          </Text>
+          <Feather name="chevron-down" size={16} color={colors.mutedForeground} />
+        </TouchableOpacity>
+      )}
     </>
   );
 }
