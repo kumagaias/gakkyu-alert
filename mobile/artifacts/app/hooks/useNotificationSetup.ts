@@ -85,8 +85,6 @@ export function useNotificationSetup(): void {
           },
           { signal: AbortSignal.timeout(10_000) }
         );
-
-        console.log("[Notifications] デバイス登録完了:", token.slice(0, 30) + "…");
       } catch (err) {
         // 通知登録の失敗はアプリの動作に影響させない
         console.warn("[Notifications] デバイス登録失敗:", err);

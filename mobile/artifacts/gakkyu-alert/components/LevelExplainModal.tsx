@@ -35,7 +35,12 @@ export function LevelExplainModal({ visible, onClose, currentLevel }: Props) {
         <Pressable style={[styles.sheet, { backgroundColor: colors.card, paddingBottom: Math.max(32, insets.bottom + 16) }]} onPress={() => {}}>
           <View style={styles.sheetHeader}>
             <Text style={[styles.sheetTitle, { color: colors.foreground }]}>感染レベルとは？</Text>
-            <TouchableOpacity onPress={onClose} hitSlop={12}>
+            <TouchableOpacity 
+              onPress={onClose} 
+              hitSlop={12}
+              accessibilityLabel="閉じる"
+              accessibilityRole="button"
+            >
               <Feather name="x" size={20} color={colors.mutedForeground} />
             </TouchableOpacity>
           </View>

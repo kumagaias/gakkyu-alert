@@ -143,14 +143,24 @@ export function PrefecturePickerModal({ visible, title, selectedId, onClose, onS
 
         <View style={[styles.header, { borderBottomColor: colors.border }]}>
           {showList && (
-            <TouchableOpacity onPress={() => setShowList(false)} style={[styles.iconBtn, { backgroundColor: colors.muted }]}>
+            <TouchableOpacity 
+              onPress={() => setShowList(false)} 
+              style={[styles.iconBtn, { backgroundColor: colors.muted }]}
+              accessibilityLabel="戻る"
+              accessibilityRole="button"
+            >
               <Feather name="arrow-left" size={18} color={colors.mutedForeground} />
             </TouchableOpacity>
           )}
           <Text style={[styles.headerTitle, { color: colors.foreground }]}>
             {showList ? "一覧から選択" : title}
           </Text>
-          <TouchableOpacity onPress={handleClose} style={[styles.iconBtn, { backgroundColor: colors.muted }]}>
+          <TouchableOpacity 
+            onPress={handleClose} 
+            style={[styles.iconBtn, { backgroundColor: colors.muted }]}
+            accessibilityLabel="閉じる"
+            accessibilityRole="button"
+          >
             <Feather name="x" size={18} color={colors.mutedForeground} />
           </TouchableOpacity>
         </View>
@@ -230,7 +240,11 @@ export function PrefecturePickerModal({ visible, title, selectedId, onClose, onS
                   returnKeyType="search"
                 />
                 {zipCode.length > 0 && (
-                  <TouchableOpacity onPress={() => { setZipCode(""); setZipError(null); setResolved(null); }}>
+                  <TouchableOpacity 
+                    onPress={() => { setZipCode(""); setZipError(null); setResolved(null); }}
+                    accessibilityLabel="郵便番号をクリア"
+                    accessibilityRole="button"
+                  >
                     <Feather name="x" size={14} color={colors.mutedForeground} />
                   </TouchableOpacity>
                 )}
@@ -252,7 +266,13 @@ export function PrefecturePickerModal({ visible, title, selectedId, onClose, onS
                   <Feather name="map-pin" size={16} color={colors.primary} />
                   <Text style={[styles.resolvedLabel, { color: colors.primary }]}>{resolved.name}が見つかりました</Text>
                 </View>
-                <TouchableOpacity style={[styles.confirmBtn, { backgroundColor: colors.primary }]} onPress={handleConfirm} activeOpacity={0.85}>
+                <TouchableOpacity 
+                  style={[styles.confirmBtn, { backgroundColor: colors.primary }]} 
+                  onPress={handleConfirm} 
+                  activeOpacity={0.85}
+                  accessibilityLabel={`${resolved.name}で登録する`}
+                  accessibilityRole="button"
+                >
                   <Text style={styles.confirmBtnText}>{resolved.name}で登録する</Text>
                   <Feather name="check" size={16} color="#fff" />
                 </TouchableOpacity>

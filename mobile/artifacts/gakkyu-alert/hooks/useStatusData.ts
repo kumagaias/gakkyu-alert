@@ -110,5 +110,5 @@ export function useStatusData(): StatusData {
     prefClosureMap[pc.id] = pc as PrefClosureStatus;
   }
 
-  return { diseases, schoolClosures, districts, prefectures, prefClosureMap, asOf: data.asOf, diseaseWeekDate: (data as Record<string, unknown>).diseaseWeekDate as string ?? null, isLoading, isError, refetch };
+  return { diseases, schoolClosures, districts, prefectures, prefClosureMap, asOf: data.asOf, diseaseWeekDate: (data as any).diseaseWeekDate as string ?? null, isLoading, isError, refetch };
 }

@@ -217,7 +217,9 @@ function buildMapHTML(
         var msg = JSON.parse(typeof e.data === 'string' ? e.data : '{}');
         if (msg.type === 'fit') { doFit(); }
         if (msg.type === 'fitHome') { doFit(); }
-      } catch(err) {}
+      } catch(err) {
+        console.warn('[Map] Message parse error:', err);
+      }
     });
 
     function processGeoJSON(data) {
@@ -374,7 +376,7 @@ function LeafletMap({
   useEffect(() => {
     if (!fitHomeTrigger) return;
     webViewRef.current?.injectJavaScript(`
-      (function(){ try { doFit(); } catch(e){} })();
+      (function(){ try { doFit(); } catch(e){ console.warn('[Map] doFit error:', e); } })();
     `);
   }, [fitHomeTrigger]);
 
@@ -385,7 +387,9 @@ function LeafletMap({
         if (data.type === "ready") setLoading(false);
         if (data.type === "error") { setLoading(false); onError?.(); }
         onMessage(raw);
-      } catch {}
+      } catch (err) {
+        console.warn('[Map] handleMsg parse error:', err);
+      }
     },
     [onMessage, onError]
   );
@@ -464,7 +468,9 @@ export default function MapScreen() {
         const pref = prefectures.find((p) => p.id === data.id);
         if (pref) setSelectedDistrict(pref);
       }
-    } catch {}
+    } catch (err) {
+      console.warn('[Map] handleMessage parse error:', err);
+    }
   }, [prefectures]);
 
   return (

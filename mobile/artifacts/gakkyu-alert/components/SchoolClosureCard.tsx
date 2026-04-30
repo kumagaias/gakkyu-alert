@@ -107,7 +107,13 @@ function ClosureRow({
 
   if (onPress) {
     return (
-      <TouchableOpacity style={rowStyle} onPress={() => onPress(entry)} activeOpacity={0.7}>
+      <TouchableOpacity 
+        style={rowStyle} 
+        onPress={() => onPress(entry)} 
+        activeOpacity={0.7}
+        accessibilityLabel={`${entry.diseaseName}の学級閉鎖情報を表示`}
+        accessibilityRole="button"
+      >
         {inner}
       </TouchableOpacity>
     );
@@ -153,7 +159,7 @@ function PrefClosureContent({
       diseaseId: d.id,
       diseaseName: disease?.name ?? FALLBACK_DISEASE_NAMES[d.id] ?? d.id,
       closedClasses: d.closedClasses,
-      weekAgoClasses: d.weekAgoClasses,
+      weekAgoClasses: d.weekAgoClasses ?? 0,
       weeklyHistory: prefDisease?.weeklyHistory ?? [],
     };
   }).sort((a, b) => b.closedClasses - a.closedClasses);
@@ -473,6 +479,18 @@ const styles = StyleSheet.create({
   },
   moreBtnText: {
     fontSize: 13,
-    fontWeight: "500",
+    fontWeight: "600",
+  },
+  expandButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+  },
+  expandText: {
+    fontSize: 13,
+    fontWeight: "600",
   },
 });

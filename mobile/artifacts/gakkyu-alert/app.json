@@ -3,7 +3,7 @@
     "name": "学級アラート",
     "slug": "gakkyu-alert",
     "description": "学級閉鎖・感染症情報をリアルタイムでお届けするアラートアプリ",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "gakkyu-alert",

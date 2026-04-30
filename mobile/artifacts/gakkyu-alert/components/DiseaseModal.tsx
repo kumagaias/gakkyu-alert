@@ -187,7 +187,12 @@ export function DiseaseModal({ disease, weekDate, onClose }: Props) {
           <Text style={[styles.title, { color: colors.foreground }]} numberOfLines={2}>
             {disease.name}
           </Text>
-          <TouchableOpacity onPress={onClose} style={[styles.closeBtn, { backgroundColor: colors.muted }]}>
+          <TouchableOpacity 
+            onPress={onClose} 
+            style={[styles.closeBtn, { backgroundColor: colors.muted }]}
+            accessibilityLabel="閉じる"
+            accessibilityRole="button"
+          >
             <Feather name="x" size={18} color={colors.mutedForeground} />
           </TouchableOpacity>
         </View>

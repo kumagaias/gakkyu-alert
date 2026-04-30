@@ -262,7 +262,11 @@ export function DistrictPickerModal({ visible, title, selectedId, onClose, onSel
                   returnKeyType="search"
                 />
                 {zipCode.length > 0 && (
-                  <TouchableOpacity onPress={() => { setZipCode(""); setZipError(null); setResolved(null); }}>
+                  <TouchableOpacity 
+                    onPress={() => { setZipCode(""); setZipError(null); setResolved(null); }}
+                    accessibilityLabel="郵便番号をクリア"
+                    accessibilityRole="button"
+                  >
                     <Feather name="x" size={14} color={colors.mutedForeground} />
                   </TouchableOpacity>
                 )}
@@ -306,7 +310,12 @@ export function DistrictPickerModal({ visible, title, selectedId, onClose, onSel
                   <Text style={styles.confirmBtnText}>{resolved.name}で登録する</Text>
                   <Feather name="check" size={16} color="#fff" />
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => setResolved(null)} activeOpacity={0.7}>
+                <TouchableOpacity 
+                  onPress={() => setResolved(null)} 
+                  activeOpacity={0.7}
+                  accessibilityLabel="やり直す"
+                  accessibilityRole="button"
+                >
                   <Text style={[styles.retryLink, { color: colors.mutedForeground }]}>やりなおす</Text>
                 </TouchableOpacity>
               </View>

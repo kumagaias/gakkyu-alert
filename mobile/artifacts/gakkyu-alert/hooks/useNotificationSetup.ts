@@ -82,7 +82,6 @@ export function useNotificationSetup() {
           homeDistrictId: homeDistrictId ?? "",
           extraDistrictIds: extraDistrictIds,
           alertLevel: notifications.alertLevel,
-          deviceModel: Device.modelName ?? undefined,
         },
       });
     }
