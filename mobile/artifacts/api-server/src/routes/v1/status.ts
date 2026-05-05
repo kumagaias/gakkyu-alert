@@ -23,7 +23,12 @@ router.get("/status", async (_req, res) => {
 
     const schoolClosures = closureSnap
       ? {
-          lastUpdated: (closureSnap.sk as string | undefined) ?? new Date().toISOString().slice(0, 10),
+          lastUpdated: (() => {
+            const src = (closureSnap.entries as Array<{ sourceUpdatedAt?: string | null }> | undefined)?.[0]?.sourceUpdatedAt;
+            if (!src) return (closureSnap.sk as string | undefined) ?? new Date().toISOString().slice(0, 10);
+            const m = src.match(/(\d{4})年(\d{2})月(\d{2})日/);
+            return m ? `${m[1]}-${m[2]}-${m[3]}` : (closureSnap.sk as string | undefined) ?? new Date().toISOString().slice(0, 10);
+          })(),
           sourceUrl: closureSnap.sourceUrl ?? "",
           tableauUrl: closureSnap.tableauUrl ?? "",
           entries: (closureSnap.entries as unknown[]) ?? [],
