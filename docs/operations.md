@@ -4,11 +4,11 @@
 
 ### 自動デプロイ (推奨)
 
-`dev` または `main` ブランチへの push で自動デプロイ:
+`develop` または `main` ブランチへの push で自動デプロイ:
 
 ```bash
-git push origin dev   # dev 環境
-git push origin main  # prd 環境
+git push origin develop  # dev 環境
+git push origin main     # prd 環境
 ```
 
 GitHub Actions が実行:
