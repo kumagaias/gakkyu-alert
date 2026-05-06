@@ -113,16 +113,16 @@ export function SchoolClosureModal({ entry, district, prefName, lastUpdated, onC
           {/* Stats row */}
           <View style={[styles.statsRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <View style={styles.statItem}>
-              <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>今週</Text>
-              <Text style={[styles.statValue, { color: dotColor }]}>
-                {entry.closedClasses}クラス
+              <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>先週</Text>
+              <Text style={[styles.statValue, { color: colors.foreground }]}>
+                {entry.weekAgoClasses}クラス
               </Text>
             </View>
             <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
             <View style={styles.statItem}>
-              <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>先週</Text>
-              <Text style={[styles.statValue, { color: colors.foreground }]}>
-                {entry.weekAgoClasses}クラス
+              <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>今週</Text>
+              <Text style={[styles.statValue, { color: dotColor }]}>
+                {entry.closedClasses}クラス
               </Text>
             </View>
             <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
@@ -145,7 +145,7 @@ export function SchoolClosureModal({ entry, district, prefName, lastUpdated, onC
                 </Text>
               </View>
               <TrendLineChart
-                history={entry.weeklyHistory}
+                history={[...entry.weeklyHistory.slice(0, -1), entry.closedClasses]}
                 lastUpdated={lastUpdated ?? SCHOOL_CLOSURES.lastUpdated}
               />
             </View>
@@ -199,6 +199,44 @@ export function SchoolClosureModal({ entry, district, prefName, lastUpdated, onC
                 </Text>
                 <Text style={[styles.linkSub, { color: colors.mutedForeground }]}>
                   日本学校保健会（JSSH）公式
+                </Text>
+              </View>
+              <Feather name="chevron-right" size={15} color={colors.border} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.linkRow, { borderTopColor: colors.border }]}
+              onPress={() => Linking.openURL("https://www.jpeds.or.jp/general/guidelines/post-153330.html")}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.linkIcon, { backgroundColor: colors.muted }]}>
+                <Feather name="external-link" size={14} color={colors.primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.linkTitle, { color: colors.foreground }]}>
+                  学校感染症と出席停止期間の基準
+                </Text>
+                <Text style={[styles.linkSub, { color: colors.mutedForeground }]}>
+                  日本小児科学会
+                </Text>
+              </View>
+              <Feather name="chevron-right" size={15} color={colors.border} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.linkRow, { borderTopColor: colors.border }]}
+              onPress={() => Linking.openURL(district?.url ?? "https://www.metro.tokyo.lg.jp/")}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.linkIcon, { backgroundColor: colors.muted }]}>
+                <Feather name="external-link" size={14} color={colors.primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.linkTitle, { color: colors.foreground }]}>
+                  {district?.name ?? "東京都"}公式サイト
+                </Text>
+                <Text style={[styles.linkSub, { color: colors.mutedForeground }]}>
+                  感染症情報・出席停止基準
                 </Text>
               </View>
               <Feather name="chevron-right" size={15} color={colors.border} />

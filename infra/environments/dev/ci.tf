@@ -30,7 +30,7 @@ data "aws_iam_policy_document" "github_actions_assume_role" {
       identifiers = [aws_iam_openid_connect_provider.github_actions.arn]
     }
 
-    # main ブランチへの push からのみ assume 可能
+    # develop ブランチへの push からのみ assume 可能
     condition {
       test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:aud"
@@ -40,7 +40,7 @@ data "aws_iam_policy_document" "github_actions_assume_role" {
     condition {
       test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:kumagaias/gakkyu-alert:ref:refs/heads/dev"]
+      values   = ["repo:kumagaias/gakkyu-alert:ref:refs/heads/develop"]
     }
   }
 }

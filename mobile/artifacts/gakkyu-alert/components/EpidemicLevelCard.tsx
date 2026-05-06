@@ -1,9 +1,8 @@
-import React, { useState } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React from "react";
+import { StyleSheet, Text, View } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useColors } from "@/hooks/useColors";
 import { type EpidemicLevel, LEVEL_NAMES, HOME_AI_SUMMARIES } from "@/constants/data";
-import { LevelExplainModal } from "@/components/LevelExplainModal";
 
 const LEVEL_ICONS: Record<EpidemicLevel, React.ComponentProps<typeof Feather>["name"]> = {
   0: "smile",
@@ -20,7 +19,6 @@ interface Props {
 
 export function EpidemicLevelCard({ level, aiOutlook }: Props) {
   const colors = useColors();
-  const [showModal, setShowModal] = useState(false);
 
   const levelColors: Record<EpidemicLevel, { bg: string; border: string; text: string; badge: string; badgeText: string }> = {
     0: { bg: colors.muted, border: colors.border, text: colors.mutedForeground, badge: colors.level0, badgeText: "#fff" },
@@ -32,26 +30,13 @@ export function EpidemicLevelCard({ level, aiOutlook }: Props) {
   const lc = levelColors[level];
 
   return (
-    <>
-      <View style={[styles.card, { backgroundColor: lc.bg, borderColor: lc.border }]}>
+    <View style={[styles.card, { backgroundColor: lc.bg, borderColor: lc.border }]}>
         <View style={styles.header}>
           <View style={styles.levelRow}>
-            {/* Tappable badge */}
-            <TouchableOpacity
-              style={[styles.badge, { backgroundColor: lc.badge }]}
-              onPress={() => setShowModal(true)}
-              activeOpacity={0.8}
-            >
+            <View style={[styles.badge, { backgroundColor: lc.badge }]}>
               <Text style={[styles.badgeNum, { color: lc.badgeText }]}>{level}</Text>
-              <View style={[styles.questionDot, { borderColor: lc.bg }]}>
-                <Text style={styles.questionMark}>?</Text>
-              </View>
-            </TouchableOpacity>
-
-            <View>
-              <Text style={[styles.schoolLabel, { color: lc.text, opacity: 0.65 }]}>学校・保育園・幼稚園の感染状況</Text>
-              <Text style={[styles.levelName, { color: lc.text }]}>{LEVEL_NAMES[level]}</Text>
             </View>
+            <Text style={[styles.levelName, { color: lc.text }]}>{LEVEL_NAMES[level]}</Text>
           </View>
           <View style={[styles.schoolIconWrap, { backgroundColor: lc.badge }]}>
             <Feather name={LEVEL_ICONS[level]} size={22} color="#fff" />
@@ -67,14 +52,7 @@ export function EpidemicLevelCard({ level, aiOutlook }: Props) {
             <Text style={[styles.outlookText, { color: lc.text }]}>{aiOutlook}</Text>
           </View>
         )}
-      </View>
-
-      <LevelExplainModal
-        visible={showModal}
-        onClose={() => setShowModal(false)}
-        currentLevel={level}
-      />
-    </>
+    </View>
   );
 }
 
@@ -101,35 +79,10 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
-    position: "relative",
   },
   badgeNum: {
     fontSize: 22,
     fontWeight: "700",
-  },
-  questionDot: {
-    position: "absolute",
-    bottom: -2,
-    right: -2,
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: "#ffffff",
-    borderWidth: 1.5,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  questionMark: {
-    fontSize: 9,
-    fontWeight: "700",
-    color: "#64748b",
-    lineHeight: 12,
-  },
-  schoolLabel: {
-    fontSize: 11,
-    fontWeight: "600",
-    letterSpacing: 0.2,
-    marginBottom: 1,
   },
   levelName: {
     fontSize: 24,

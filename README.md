@@ -41,13 +41,18 @@ pnpm --filter @workspace/api-server dev
 
 ## デプロイ
 
+### ブランチ戦略
+
+- **develop**: 開発環境（dev）へ自動デプロイ
+- **main**: 本番環境（prd）へ自動デプロイ
+
 ### 自動デプロイ (推奨)
 
-`dev` または `main` ブランチへの push で自動デプロイ:
+`develop` または `main` ブランチへの push で自動デプロイ:
 
 ```bash
-git push origin dev   # dev 環境
-git push origin main  # prd 環境
+git push origin develop  # dev 環境
+git push origin main     # prd 環境
 ```
 
 GitHub Actions が以下を実行:
