@@ -411,12 +411,12 @@ export const handler = async (): Promise<void> => {
   }
 
   // 学級閉鎖データを取得して流行レベルを再計算
-  const latestClosure = await getLatestSnapshot<{ entries: Array<{ diseaseId: string; closedClasses: number }> }>(
+  const diseaseClosureData = await getLatestSnapshot<{ entries: Array<{ diseaseId: string; closedClasses: number }> }>(
     "CLOSURE"
   ).catch(() => null);
 
   for (const disease of diseases) {
-    const closure = latestClosure?.entries?.find((e) => e.diseaseId === disease.id);
+    const closure = diseaseClosureData?.entries?.find((e) => e.diseaseId === disease.id);
     if (closure) {
       const closureLevel = calcLevel(closure.closedClasses, CLOSURE_THRESHOLDS);
       disease.currentLevel = Math.max(disease.currentLevel, closureLevel) as 0 | 1 | 2 | 3;
@@ -643,7 +643,7 @@ export const handler = async (): Promise<void> => {
   await Promise.all(allAiTasks);
 
   // 学級閉鎖データを取得して流行レベルを再計算
-  const latestClosure = await getSnapshotByKey<{ prefectures: Array<{ id: string; hasData: boolean; diseases: Array<{ id: string; closedClasses: number }> }> }>(
+  const prefClosureData = await getSnapshotByKey<{ prefectures: Array<{ id: string; hasData: boolean; diseases: Array<{ id: string; closedClasses: number }> }> }>(
     "CLOSURE_BY_PREF",
     weekKey
   );
@@ -657,9 +657,9 @@ export const handler = async (): Promise<void> => {
 
   // 定点サーベイランスと学級閉鎖の両方を考慮して流行レベルを再計算
   for (const pref of prefectures) {
-    const closure = latestClosure?.prefectures?.find((p) => p.id === pref.id);
+    const closure = prefClosureData?.prefectures?.find((p: any) => p.id === pref.id);
     if (closure?.hasData) {
-      const totalClosed = closure.diseases.reduce((sum, d) => sum + d.closedClasses, 0);
+      const totalClosed = closure.diseases.reduce((sum: number, d: any) => sum + d.closedClasses, 0);
       const closureLevel = calcClosureLevel(totalClosed);
       pref.level = Math.max(pref.level, closureLevel);
     }
