@@ -1,0 +1,48 @@
+name: Deploy Amplify
+
+# develop/main へのマージ時、フロントエンドに関連するファイルが変更された場合に実行
+# develop → gakkyu-alert-dev Amplify
+# main    → gakkyu-alert-prd Amplify
+on:
+  push:
+    branches: [develop, main]
+    paths:
+      - 'mobile/artifacts/gakkyu-alert/**'
+      - 'mobile/lib/**'
+      - 'mobile/pnpm-lock.yaml'
+      - 'infra/environments/dev/amplify-build-spec.yml'
+      - 'infra/environments/prd/amplify-build-spec.yml'
+      - '.github/workflows/deploy-amplify.yml'
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: ap-northeast-1
+  AWS_ACCOUNT_ID: '843925270284'
+  ENVIRONMENT: ${{ github.ref_name == 'main' && 'prd' || 'dev' }}
+
+jobs:
+  deploy:
+    name: amplify (${{ github.ref_name == 'main' && 'prd' || 'dev' }})
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: "arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/gakkyu-alert-github-actions-deploy-${{ env.ENVIRONMENT }}"
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Start Amplify build
+        run: |
+          APP_ID=$(aws amplify list-apps \
+            --query "apps[?name=='gakkyu-alert-${{ env.ENVIRONMENT }}'].appId | [0]" \
+            --output text)
+          aws amplify start-job \
+            --app-id "$APP_ID" \
+            --branch-name "${{ github.ref_name }}" \
+            --job-type RELEASE \
+            --query '{jobId:jobSummary.jobId,status:jobSummary.status}' \
+            --output table
