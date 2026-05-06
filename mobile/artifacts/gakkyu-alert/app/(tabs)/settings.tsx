@@ -190,7 +190,7 @@ export default function SettingsScreen() {
                 <View style={[styles.rowIcon, { backgroundColor: colors.muted }]}>
                   <Feather name="alert-triangle" size={16} color={colors.primary} />
                 </View>
-                <Text style={[styles.rowLabel, { color: colors.foreground }]}>アラートレベル</Text>
+                <Text style={[styles.rowLabel, { color: colors.foreground }]}>感染レベル</Text>
                 <View style={styles.levelPicker}>
                   {([2, 3] as const).map((lv) => (
                     <TouchableOpacity

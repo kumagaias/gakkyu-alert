@@ -22,6 +22,7 @@ interface Props {
   prefClosure?: PrefClosureStatus;
   prefName?: string;
   prefId?: string;
+  aiSummary?: string;
 }
 
 const SYSTEM_URL = "https://www.gakkohoken.jp/system_information/";
@@ -158,9 +159,9 @@ function PrefClosureContent({
     return {
       diseaseId: d.id,
       diseaseName: disease?.name ?? FALLBACK_DISEASE_NAMES[d.id] ?? d.id,
-      closedClasses: d.closedClasses,
+      closedClasses: d.closedClasses ?? 0,
       weekAgoClasses: d.weekAgoClasses ?? 0,
-      weeklyHistory: prefDisease?.weeklyHistory ?? [],
+      weeklyHistory: prefDisease?.weeklyHistory ?? d.weeklyHistory ?? [],
     };
   }).sort((a, b) => b.closedClasses - a.closedClasses);
 
@@ -236,33 +237,35 @@ function PrefClosureContent({
   );
 }
 
-export function SchoolClosureCard({ district, prefClosure, prefName, prefId }: Props) {
+export function SchoolClosureCard({ district, prefClosure, prefName, prefId, aiSummary }: Props) {
   const colors = useColors();
   const { schoolClosures } = useStatusData();
   const [expanded, setExpanded] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<SchoolClosureEntry | null>(null);
 
   // Prefecture-mode: show CLOSURE_BY_PREF data
-  if (prefClosure !== undefined) {
+  if (prefClosure) {
     const totalClosed = prefClosure.hasData
-      ? prefClosure.diseases.reduce((sum, d) => sum + d.closedClasses, 0)
+      ? prefClosure.diseases.reduce((sum, d) => sum + (d.closedClasses ?? 0), 0)
       : 0;
     const allClear = !prefClosure.hasData || totalClosed === 0;
 
     return (
       <View>
         <View style={styles.sectionHeader}>
-          <Feather name="alert-circle" size={16} color={colors.primary} />
+          <Feather name="alert-circle" size={18} color={colors.primary} />
           <Text style={[styles.sectionTitle, { color: colors.foreground }]}>学級閉鎖情報</Text>
           <View style={[styles.badge, { backgroundColor: allClear ? colors.successBg : colors.level1Bg }]}>
             <Text style={[styles.badgeText, { color: allClear ? colors.success : colors.level2 }]}>
               {!prefClosure.hasData ? "データなし" : allClear ? "" : `計${totalClosed}クラス`}
             </Text>
           </View>
-          {prefName && (
-            <Text style={[styles.headerSub, { color: colors.mutedForeground }]}>{prefName}</Text>
-          )}
         </View>
+        {!!aiSummary && (
+          <View style={styles.aiBox}>
+            <Text style={styles.aiBoxText}>{aiSummary}</Text>
+          </View>
+        )}
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <PrefClosureContent prefClosure={prefClosure} prefId={prefId} onPress={setSelectedEntry} />
         </View>
@@ -287,7 +290,7 @@ export function SchoolClosureCard({ district, prefClosure, prefName, prefId }: P
     <View>
       {/* Section header */}
       <View style={styles.sectionHeader}>
-        <Feather name="alert-circle" size={16} color={colors.primary} />
+        <Feather name="alert-circle" size={18} color={colors.primary} />
         <Text style={[styles.sectionTitle, { color: colors.foreground }]}>学級閉鎖情報</Text>
         {!allClear && (
           <View style={[styles.badge, { backgroundColor: colors.level1Bg }]}>
@@ -296,8 +299,13 @@ export function SchoolClosureCard({ district, prefClosure, prefName, prefId }: P
             </Text>
           </View>
         )}
-        <Text style={[styles.headerSub, { color: colors.mutedForeground }]}>東京都</Text>
       </View>
+
+      {!!aiSummary && (
+        <View style={styles.aiBox}>
+          <Text style={styles.aiBoxText}>{aiSummary}</Text>
+        </View>
+      )}
 
       {/* Card */}
       <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -386,8 +394,9 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   sectionTitle: {
-    fontSize: 17,
+    fontSize: 19,
     fontWeight: "700",
+    lineHeight: 22,
   },
   badge: {
     paddingHorizontal: 8,
@@ -492,5 +501,18 @@ const styles = StyleSheet.create({
   expandText: {
     fontSize: 13,
     fontWeight: "600",
+  },
+  aiBox: {
+    backgroundColor: "#e0f2fe",
+    borderColor: "#7dd3fc",
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 10,
+  },
+  aiBoxText: {
+    fontSize: 13,
+    lineHeight: 20,
+    color: "#0369a1",
   },
 });

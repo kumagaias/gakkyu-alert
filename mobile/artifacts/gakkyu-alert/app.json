@@ -60,8 +60,9 @@
     },
     "extra": {
       "eas": {
-        "projectId": "61704459-9b18-48dd-b1f2-d125aba0f0eb"
-      }
+        "projectId": "d799a554-6936-4098-8d96-e576d2cd0b49"
+      },
+      "router": {}
     },
     "owner": "gakkyu-alert"
   }
