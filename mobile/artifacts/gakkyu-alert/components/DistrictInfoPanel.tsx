@@ -13,6 +13,8 @@ import { EpidemicLevelCard } from "@/components/EpidemicLevelCard";
 import { DiseaseRow } from "@/components/DiseaseRow";
 import { DiseaseModal } from "@/components/DiseaseModal";
 import { SchoolClosureCard } from "@/components/SchoolClosureCard";
+import { SentinelExplainModal } from "@/components/SentinelExplainModal";
+import { LevelExplainModal } from "@/components/LevelExplainModal";
 
 interface Props {
   district: District;
@@ -21,7 +23,7 @@ interface Props {
 
 export function DistrictInfoPanel({ district, showFootnote = true }: Props) {
   const colors = useColors();
-  const { diseases: tokyoDiseases, prefClosureMap, schoolClosures } = useStatusData();
+  const { diseases: tokyoDiseases, prefClosureMap, schoolClosures, diseaseWeekDate } = useStatusData();
 
   // 学校閉鎖データから来週の見通し（閉鎖クラス数が多い順、なければ最初の非空文字列）
   const topOutlook = schoolClosures.entries
@@ -30,6 +32,8 @@ export function DistrictInfoPanel({ district, showFootnote = true }: Props) {
     .find((e) => !!e.aiOutlook)?.aiOutlook;
   const [selectedDisease, setSelectedDisease] = useState<Disease | null>(null);
   const [showAllDiseases, setShowAllDiseases] = useState(false);
+  const [showSentinelModal, setShowSentinelModal] = useState(false);
+  const [showLevelModal, setShowLevelModal] = useState(false);
 
   // 都道府県別疾患データがあればそちらを使い、静的 DISEASES とマージする
   const diseases: Disease[] = district.diseases && district.diseases.length > 0
@@ -62,30 +66,47 @@ export function DistrictInfoPanel({ district, showFootnote = true }: Props) {
 
   return (
     <>
-      {/* Epidemic level card */}
-      <EpidemicLevelCard level={district.level} aiOutlook={topOutlook} />
-
-      {/* School closure info */}
-      {district.id === "tokyo"
-        ? <SchoolClosureCard district={district} />
-        : <SchoolClosureCard
-            district={district}
-            prefClosure={prefClosureMap[district.id] ?? { id: district.id, hasData: false, diseases: [] }}
-            prefName={district.name}
-          />
-      }
+      {/* Epidemic level section */}
+      <View>
+        <View style={styles.sectionHeader}>
+          <Feather name="activity" size={18} color={colors.primary} />
+          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>感染レベル</Text>
+          <TouchableOpacity
+            style={[styles.helpChip, { backgroundColor: colors.muted }]}
+            onPress={() => setShowLevelModal(true)}
+            activeOpacity={0.7}
+            accessibilityLabel="感染レベルの解説"
+            accessibilityRole="button"
+          >
+            <Text style={[styles.helpChipText, { color: colors.mutedForeground }]}>?</Text>
+          </TouchableOpacity>
+        </View>
+        <EpidemicLevelCard level={district.level} />
+      </View>
 
       {/* Disease trend section */}
       <View>
         <View style={styles.sectionHeader}>
-          <Feather name="book-open" size={16} color={colors.primary} />
+          <Feather name="book-open" size={18} color={colors.primary} />
           <Text style={[styles.sectionTitle, { color: colors.foreground }]}>病名別トレンド</Text>
-          <View style={[styles.countBadge, { backgroundColor: colors.muted }]}>
-            <Text style={[styles.countText, { color: colors.mutedForeground }]}>
-              {activeDiseases.length}/{sortedDiseases.length}疾患
-            </Text>
-          </View>
+          {showFootnote && (
+            <TouchableOpacity
+              style={[styles.helpChip, { backgroundColor: colors.muted }]}
+              onPress={() => setShowSentinelModal(true)}
+              activeOpacity={0.7}
+              accessibilityLabel="定点あたり患者数について"
+              accessibilityRole="button"
+            >
+              <Text style={[styles.helpChipText, { color: colors.mutedForeground }]}>?</Text>
+            </TouchableOpacity>
+          )}
         </View>
+
+        {!!district.aiSummary && (
+          <View style={styles.aiBox}>
+            <Text style={styles.aiBoxText}>{district.aiSummary}</Text>
+          </View>
+        )}
 
         <View style={[styles.diseaseList, { backgroundColor: colors.card, borderColor: colors.border }]}>
           {activeDiseases.length === 0 && !showAllDiseases ? (
@@ -130,16 +151,23 @@ export function DistrictInfoPanel({ district, showFootnote = true }: Props) {
           )}
         </View>
 
-        {showFootnote && (
-          <Text style={[styles.footnote, { color: colors.mutedForeground }]}>
-            ※ 定点あたり患者数は東京都感染症情報センターのデータに基づく推計値です
-          </Text>
-        )}
-
       </View>
 
+      {/* School closure info */}
+      {district.id === "tokyo"
+        ? <SchoolClosureCard district={district} aiSummary={topOutlook} />
+        : <SchoolClosureCard
+            district={district}
+            prefClosure={prefClosureMap[district.id] ?? { id: district.id, hasData: false, diseases: [] }}
+            prefName={district.name}
+            prefId={district.id}
+          />
+      }
+
       {/* Disease detail modal */}
-      <DiseaseModal disease={selectedDisease} onClose={() => setSelectedDisease(null)} />
+      <DiseaseModal disease={selectedDisease} weekDate={diseaseWeekDate} onClose={() => setSelectedDisease(null)} />
+      <SentinelExplainModal visible={showSentinelModal} onClose={() => setShowSentinelModal(false)} />
+      <LevelExplainModal visible={showLevelModal} onClose={() => setShowLevelModal(false)} currentLevel={district.level} />
     </>
   );
 }
@@ -153,17 +181,21 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   sectionTitle: {
-    fontSize: 17,
+    fontSize: 19,
     fontWeight: "700",
+    lineHeight: 22,
   },
-  countBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 20,
+  helpChip: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  countText: {
-    fontSize: 11,
-    fontWeight: "600",
+  helpChipText: {
+    fontSize: 12,
+    fontWeight: "700",
+    lineHeight: 15,
   },
   diseaseList: {
     borderRadius: 14,
@@ -193,11 +225,20 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "500",
   },
-  footnote: {
-    fontSize: 11,
-    marginTop: 8,
-    lineHeight: 16,
+  aiBox: {
+    backgroundColor: "#e0f2fe",
+    borderColor: "#7dd3fc",
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 10,
   },
+  aiBoxText: {
+    fontSize: 13,
+    lineHeight: 20,
+    color: "#0369a1",
+  },
+
 
   /* Related links */
   linksHeader: {

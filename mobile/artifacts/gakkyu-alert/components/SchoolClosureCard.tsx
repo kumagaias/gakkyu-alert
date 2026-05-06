@@ -21,6 +21,8 @@ interface Props {
   district?: District | null;
   prefClosure?: PrefClosureStatus;
   prefName?: string;
+  prefId?: string;
+  aiSummary?: string;
 }
 
 const SYSTEM_URL = "https://www.gakkohoken.jp/system_information/";
@@ -106,7 +108,13 @@ function ClosureRow({
 
   if (onPress) {
     return (
-      <TouchableOpacity style={rowStyle} onPress={() => onPress(entry)} activeOpacity={0.7}>
+      <TouchableOpacity 
+        style={rowStyle} 
+        onPress={() => onPress(entry)} 
+        activeOpacity={0.7}
+        accessibilityLabel={`${entry.diseaseName}の学級閉鎖情報を表示`}
+        accessibilityRole="button"
+      >
         {inner}
       </TouchableOpacity>
     );
@@ -117,12 +125,15 @@ function ClosureRow({
 /** 都道府県別閉鎖クラス表示（学校等欠席者・感染症情報システムデータ） */
 function PrefClosureContent({
   prefClosure,
+  prefId,
   onPress,
 }: {
   prefClosure: PrefClosureStatus;
+  prefId?: string;
   onPress: (entry: SchoolClosureEntry) => void;
 }) {
   const colors = useColors();
+  const { prefectures } = useStatusData();
 
   if (!prefClosure.hasData) {
     return (
@@ -140,20 +151,53 @@ function PrefClosureContent({
     );
   }
 
+  const pref = prefId ? prefectures.find((p) => p.id === prefId) : undefined;
+
   const entries: SchoolClosureEntry[] = prefClosure.diseases.map((d) => {
     const disease = DISEASES.find((dis) => dis.id === d.id);
+    const prefDisease = pref?.diseases?.find((pd) => pd.id === d.id);
     return {
       diseaseId: d.id,
       diseaseName: disease?.name ?? FALLBACK_DISEASE_NAMES[d.id] ?? d.id,
-      closedClasses: d.closedClasses,
-      weekAgoClasses: d.weekAgoClasses,
-      weeklyHistory: [],
+      closedClasses: d.closedClasses ?? 0,
+      weekAgoClasses: d.weekAgoClasses ?? 0,
+      weeklyHistory: prefDisease?.weeklyHistory ?? d.weeklyHistory ?? [],
     };
   }).sort((a, b) => b.closedClasses - a.closedClasses);
 
   const totalClosed = entries.reduce((sum, e) => sum + e.closedClasses, 0);
+  const [expanded, setExpanded] = useState(false);
+  
+  // 過去データがある疾患（weeklyHistoryに0以外がある）
+  const entriesWithHistory = entries.filter((e) => 
+    e.weeklyHistory.some((v) => v > 0)
+  );
 
-  if (entries.length === 0 || totalClosed === 0) {
+  if (entries.length === 0) {
+    return (
+      <View style={styles.allClearRow}>
+        <Feather name="check-circle" size={14} color={colors.success} />
+        <Text style={[styles.allClearText, { color: colors.success }]}>
+          現在、学級閉鎖の報告はありません
+        </Text>
+      </View>
+    );
+  }
+
+  // 現在閉鎖がある疾患
+  const activeEntries = entries.filter((e) => e.closedClasses > 0);
+  // 現在閉鎖0だが過去データがある疾患
+  const inactiveWithHistory = entries.filter((e) => 
+    e.closedClasses === 0 && e.weeklyHistory.some((v) => v > 0)
+  );
+
+  const visibleEntries = expanded 
+    ? [...activeEntries, ...inactiveWithHistory]
+    : activeEntries.length > 0 
+      ? activeEntries 
+      : inactiveWithHistory;
+
+  if (visibleEntries.length === 0) {
     return (
       <View style={styles.allClearRow}>
         <Feather name="check-circle" size={14} color={colors.success} />
@@ -166,46 +210,69 @@ function PrefClosureContent({
 
   return (
     <>
-      {entries.map((entry, i) => (
+      {totalClosed === 0 && (
+        <View style={[styles.allClearRow, { marginBottom: 8 }]}>
+          <Feather name="check-circle" size={14} color={colors.success} />
+          <Text style={[styles.allClearText, { color: colors.success }]}>
+            現在、学級閉鎖の報告はありません
+          </Text>
+        </View>
+      )}
+      {visibleEntries.map((entry, i) => (
         <ClosureRow key={entry.diseaseId} entry={entry} isFirst={i === 0} onPress={onPress} />
       ))}
+      {!expanded && inactiveWithHistory.length > 0 && activeEntries.length > 0 && (
+        <TouchableOpacity
+          style={[styles.expandButton, { borderColor: colors.border }]}
+          onPress={() => setExpanded(true)}
+          activeOpacity={0.7}
+        >
+          <Text style={[styles.expandText, { color: colors.mutedForeground }]}>
+            平穏の疾患をもっと見る ({inactiveWithHistory.length})
+          </Text>
+          <Feather name="chevron-down" size={16} color={colors.mutedForeground} />
+        </TouchableOpacity>
+      )}
     </>
   );
 }
 
-export function SchoolClosureCard({ district, prefClosure, prefName }: Props) {
+export function SchoolClosureCard({ district, prefClosure, prefName, prefId, aiSummary }: Props) {
   const colors = useColors();
   const { schoolClosures } = useStatusData();
   const [expanded, setExpanded] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<SchoolClosureEntry | null>(null);
 
   // Prefecture-mode: show CLOSURE_BY_PREF data
-  if (prefClosure !== undefined) {
+  if (prefClosure) {
     const totalClosed = prefClosure.hasData
-      ? prefClosure.diseases.reduce((sum, d) => sum + d.closedClasses, 0)
+      ? prefClosure.diseases.reduce((sum, d) => sum + (d.closedClasses ?? 0), 0)
       : 0;
     const allClear = !prefClosure.hasData || totalClosed === 0;
 
     return (
       <View>
         <View style={styles.sectionHeader}>
-          <Feather name="alert-circle" size={16} color={colors.primary} />
+          <Feather name="alert-circle" size={18} color={colors.primary} />
           <Text style={[styles.sectionTitle, { color: colors.foreground }]}>学級閉鎖情報</Text>
           <View style={[styles.badge, { backgroundColor: allClear ? colors.successBg : colors.level1Bg }]}>
             <Text style={[styles.badgeText, { color: allClear ? colors.success : colors.level2 }]}>
               {!prefClosure.hasData ? "データなし" : allClear ? "" : `計${totalClosed}クラス`}
             </Text>
           </View>
-          {prefName && (
-            <Text style={[styles.headerSub, { color: colors.mutedForeground }]}>{prefName}</Text>
-          )}
         </View>
+        {!!aiSummary && (
+          <View style={styles.aiBox}>
+            <Text style={styles.aiBoxText}>{aiSummary}</Text>
+          </View>
+        )}
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <PrefClosureContent prefClosure={prefClosure} onPress={setSelectedEntry} />
+          <PrefClosureContent prefClosure={prefClosure} prefId={prefId} onPress={setSelectedEntry} />
         </View>
         <SchoolClosureModal
           entry={selectedEntry}
           prefName={prefName}
+          lastUpdated={schoolClosures.lastUpdated}
           onClose={() => setSelectedEntry(null)}
         />
       </View>
@@ -223,7 +290,7 @@ export function SchoolClosureCard({ district, prefClosure, prefName }: Props) {
     <View>
       {/* Section header */}
       <View style={styles.sectionHeader}>
-        <Feather name="alert-circle" size={16} color={colors.primary} />
+        <Feather name="alert-circle" size={18} color={colors.primary} />
         <Text style={[styles.sectionTitle, { color: colors.foreground }]}>学級閉鎖情報</Text>
         {!allClear && (
           <View style={[styles.badge, { backgroundColor: colors.level1Bg }]}>
@@ -232,8 +299,13 @@ export function SchoolClosureCard({ district, prefClosure, prefName }: Props) {
             </Text>
           </View>
         )}
-        <Text style={[styles.headerSub, { color: colors.mutedForeground }]}>東京都</Text>
       </View>
+
+      {!!aiSummary && (
+        <View style={styles.aiBox}>
+          <Text style={styles.aiBoxText}>{aiSummary}</Text>
+        </View>
+      )}
 
       {/* Card */}
       <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -306,6 +378,7 @@ export function SchoolClosureCard({ district, prefClosure, prefName }: Props) {
       <SchoolClosureModal
         entry={selectedEntry}
         district={district}
+        lastUpdated={schoolClosures.lastUpdated}
         onClose={() => setSelectedEntry(null)}
       />
     </View>
@@ -321,8 +394,9 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   sectionTitle: {
-    fontSize: 17,
+    fontSize: 19,
     fontWeight: "700",
+    lineHeight: 22,
   },
   badge: {
     paddingHorizontal: 8,
@@ -414,6 +488,31 @@ const styles = StyleSheet.create({
   },
   moreBtnText: {
     fontSize: 13,
-    fontWeight: "500",
+    fontWeight: "600",
+  },
+  expandButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+  },
+  expandText: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  aiBox: {
+    backgroundColor: "#e0f2fe",
+    borderColor: "#7dd3fc",
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 10,
+  },
+  aiBoxText: {
+    fontSize: 13,
+    lineHeight: 20,
+    color: "#0369a1",
   },
 });

@@ -1,148 +1,27 @@
-import React, { useRef, useState } from "react";
+import React, { useState } from "react";
 import {
   Alert,
-  Keyboard,
   Modal,
   Platform,
   ScrollView,
   StyleSheet,
   Switch,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { router, type Href } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Constants from "expo-constants";
 import { useColors } from "@/hooks/useColors";
 import { useApp, type Child } from "@/contexts/AppContext";
 import { PREFECTURES } from "@/constants/data";
 import { PrefecturePickerModal } from "@/components/PrefecturePickerModal";
 import { LevelExplainModal } from "@/components/LevelExplainModal";
-
-function SectionHeader({ title }: { title: string }) {
-  const colors = useColors();
-  return (
-    <Text style={[styles.sectionHeader, { color: colors.mutedForeground }]}>{title}</Text>
-  );
-}
-
-function SettingsRow({
-  icon,
-  label,
-  value,
-  onPress,
-  right,
-}: {
-  icon: React.ComponentProps<typeof Feather>["name"];
-  label: string;
-  value?: string;
-  onPress?: () => void;
-  right?: React.ReactNode;
-}) {
-  const colors = useColors();
-  return (
-    <TouchableOpacity
-      style={[styles.settingsRow, { backgroundColor: colors.card, borderColor: colors.border }]}
-      onPress={onPress}
-      activeOpacity={onPress ? 0.7 : 1}
-      disabled={!onPress && !right}
-    >
-      <View style={[styles.rowIcon, { backgroundColor: colors.muted }]}>
-        <Feather name={icon} size={16} color={colors.primary} />
-      </View>
-      <Text style={[styles.rowLabel, { color: colors.foreground }]}>{label}</Text>
-      {value && <Text style={[styles.rowValue, { color: colors.mutedForeground }]}>{value}</Text>}
-      {right && <View>{right}</View>}
-      {onPress && !right && <Feather name="chevron-right" size={16} color={colors.border} />}
-    </TouchableOpacity>
-  );
-}
-
-function AddChildModal({
-  visible,
-  onClose,
-  onSave,
-  initial,
-}: {
-  visible: boolean;
-  onClose: () => void;
-  onSave: (data: { nickname: string; age: number }) => void;
-  initial?: Child;
-}) {
-  const colors = useColors();
-  const [nickname, setNickname] = useState(initial?.nickname ?? "");
-  const [age, setAge] = useState(initial?.age?.toString() ?? "");
-  const ageInputRef = useRef<TextInput>(null);
-
-  const save = () => {
-    if (!nickname.trim() || !age) return;
-    Keyboard.dismiss();
-    onSave({ nickname: nickname.trim(), age: parseInt(age) });
-    setNickname("");
-    setAge("");
-    onClose();
-  };
-
-  return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <View style={[styles.modalContainer, { backgroundColor: colors.background }]}>
-        <View style={[styles.handle, { backgroundColor: colors.border }]} />
-        <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
-          <Text style={[styles.modalTitle, { color: colors.foreground }]}>
-            {initial ? "お子さんを編集" : "お子さんを追加"}
-          </Text>
-          <TouchableOpacity
-            onPress={onClose}
-            style={[styles.closeBtn, { backgroundColor: colors.muted }]}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Feather name="x" size={18} color={colors.mutedForeground} />
-          </TouchableOpacity>
-        </View>
-        <View style={styles.modalContent}>
-          <View>
-            <Text style={[styles.inputLabel, { color: colors.mutedForeground }]}>ニックネーム</Text>
-            <TextInput
-              style={[styles.input, { backgroundColor: colors.card, borderColor: colors.border, color: colors.foreground }]}
-              value={nickname}
-              onChangeText={setNickname}
-              placeholder="例：たろう"
-              placeholderTextColor={colors.mutedForeground}
-              returnKeyType="next"
-              onSubmitEditing={() => ageInputRef.current?.focus()}
-              blurOnSubmit={false}
-            />
-          </View>
-          <View>
-            <Text style={[styles.inputLabel, { color: colors.mutedForeground }]}>年齢</Text>
-            <TextInput
-              ref={ageInputRef}
-              style={[styles.input, { backgroundColor: colors.card, borderColor: colors.border, color: colors.foreground }]}
-              value={age}
-              onChangeText={setAge}
-              placeholder="例：6"
-              placeholderTextColor={colors.mutedForeground}
-              keyboardType="number-pad"
-              returnKeyType="done"
-              onSubmitEditing={save}
-            />
-          </View>
-          <TouchableOpacity
-            style={[styles.saveBtn, { backgroundColor: nickname.trim() && age ? colors.primary : colors.muted }]}
-            onPress={save}
-            disabled={!nickname.trim() || !age}
-          >
-            <Text style={[styles.saveBtnText, { color: nickname.trim() && age ? "#fff" : colors.mutedForeground }]}>
-              保存する
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </Modal>
-  );
-}
+import { SectionHeader } from "@/components/settings/SectionHeader";
+import { SettingsRow } from "@/components/settings/SettingsRow";
+import { AddChildModal } from "@/components/settings/AddChildModal";
 
 export default function SettingsScreen() {
   const colors = useColors();
@@ -311,7 +190,7 @@ export default function SettingsScreen() {
                 <View style={[styles.rowIcon, { backgroundColor: colors.muted }]}>
                   <Feather name="alert-triangle" size={16} color={colors.primary} />
                 </View>
-                <Text style={[styles.rowLabel, { color: colors.foreground }]}>アラートレベル</Text>
+                <Text style={[styles.rowLabel, { color: colors.foreground }]}>感染レベル</Text>
                 <View style={styles.levelPicker}>
                   {([2, 3] as const).map((lv) => (
                     <TouchableOpacity
@@ -378,7 +257,7 @@ export default function SettingsScreen() {
         </View>
 
         <Text style={[styles.version, { color: colors.mutedForeground }]}>
-          学級アラート v1.0.0
+          学級アラート v{Constants.expoConfig?.version ?? "1.0.0"}
         </Text>
       </ScrollView>
 
@@ -507,15 +386,6 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 6,
   },
-  sectionHeader: {
-    fontSize: 12,
-    fontWeight: "600",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-    marginTop: 12,
-    marginBottom: 4,
-    marginLeft: 4,
-  },
   sectionBlock: {
     borderRadius: 14,
     borderWidth: 1,
@@ -539,9 +409,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontWeight: "500",
-  },
-  rowValue: {
-    fontSize: 14,
   },
   childRow: {
     flexDirection: "row",
@@ -688,65 +555,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 12,
     marginTop: 16,
-  },
-  modalContainer: {
-    flex: 1,
-    paddingTop: 8,
-  },
-  handle: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    alignSelf: "center",
-    marginBottom: 12,
-  },
-  modalHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingBottom: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    gap: 12,
-  },
-  modalTitle: {
-    flex: 1,
-    fontSize: 18,
-    fontWeight: "700",
-  },
-  closeBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  modalContent: {
-    padding: 20,
-    gap: 16,
-  },
-  inputLabel: {
-    fontSize: 12,
-    fontWeight: "600",
-    marginBottom: 6,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  input: {
-    borderRadius: 12,
-    borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 16,
-  },
-  saveBtn: {
-    paddingVertical: 14,
-    borderRadius: 14,
-    alignItems: "center",
-    marginTop: 4,
-  },
-  saveBtnText: {
-    fontSize: 15,
-    fontWeight: "700",
   },
   pickerRow: {
     flexDirection: "row",

@@ -14,6 +14,7 @@ import Svg, { Circle, Line, Path, Text as SvgText } from "react-native-svg";
 import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
+import { useApp } from "@/contexts/AppContext";
 import { type Disease, type EpidemicLevel, LEVEL_NAMES } from "@/constants/data";
 
 const { width } = Dimensions.get("window");
@@ -21,10 +22,18 @@ const BAR_MAX_W = width - 80;
 
 const CHART_W = Math.min(width - 48, 640);
 const CHART_H = 120;
-const PAD = { top: 12, bottom: 28, left: 32, right: 16 };
+const PAD = { top: 12, bottom: 28, left: 32, right: 24 };
+
+function weekDateToLabels(weekDate: string | null): string[] {
+  const base = weekDate ? new Date(weekDate) : new Date();
+  return [-4, -3, -2, -1, 0, 1, 2].map((offset) => {
+    const d = new Date(base.getTime() + offset * 7 * 86_400_000);
+    return `${d.getMonth() + 1}/${d.getDate()}`;
+  });
+}
 
 /** 過去4週 + 未来2週の折れ線グラフ */
-function TrendLineChart({ history, current, level }: { history: number[]; current: number; level: EpidemicLevel }) {
+function TrendLineChart({ history, current, level, weekDate }: { history: number[]; current: number; level: EpidemicLevel; weekDate: string | null }) {
   const colors = useColors();
   const levelColors: Record<EpidemicLevel, string> = {
     0: colors.level0, 1: colors.level1, 2: colors.level2, 3: colors.level3,
@@ -58,7 +67,7 @@ function TrendLineChart({ history, current, level }: { history: number[]; curren
     .map((v, i) => `${i === 0 ? "M" : "L"}${xOf(realPoints.length - 1 + i).toFixed(1)},${yOf(v).toFixed(1)}`)
     .join(" ");
 
-  const labels = ["-4W", "-3W", "-2W", "-1W", "今週", "+1W", "+2W"];
+  const labels = weekDate ? weekDateToLabels(weekDate) : ["-4W", "-3W", "-2W", "-1W", "今週", "+1W", "+2W"];
 
   return (
     <Svg width={CHART_W} height={CHART_H}>
@@ -104,8 +113,11 @@ function TrendLineChart({ history, current, level }: { history: number[]; curren
           fontSize={9} fill={i >= 5 ? colors.mutedForeground + "99" : colors.mutedForeground}
         >{l}</SvgText>
       ))}
-      {/* 今週の値ラベル — 上端クリップを防ぐため最低 12px を確保 */}
-      <SvgText x={xOf(4)} y={Math.max(yOf(current) - 8, 12)} textAnchor="middle"
+      {/* 今週の値ラベル — 上端クリップを防ぐため最低 12px を確保、右端クリップを防ぐため "end" */}
+      <SvgText
+        x={xOf(4) + 5}
+        y={Math.max(yOf(current) - 8, 12)}
+        textAnchor="end"
         fontSize={10} fontWeight="700" fill={lineColor}
       >{current.toFixed(1)}</SvgText>
     </Svg>
@@ -114,6 +126,7 @@ function TrendLineChart({ history, current, level }: { history: number[]; curren
 
 interface Props {
   disease: Disease | null;
+  weekDate?: string | null;
   onClose: () => void;
 }
 
@@ -141,13 +154,14 @@ function MiniBar({ value, max, level }: { value: number; max: number; level: Epi
 }
 
 const INSTITUTION_ROWS = [
-  { key: "hoikuen" as const, label: "保育園・幼稚園（参考）", icon: "sun" as const },
-  { key: "gakko" as const,   label: "小学校〜高校（共通）",   icon: "book" as const },
+  { key: "hoikuen" as const, label: "保育園・幼稚園", icon: "sun" as const },
+  { key: "gakko" as const,   label: "小学校・中学校・高校",   icon: "book" as const },
 ];
 
-export function DiseaseModal({ disease, onClose }: Props) {
+export function DiseaseModal({ disease, weekDate, onClose }: Props) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { homeDistrict } = useApp();
 
   if (!disease) return null;
 
@@ -175,7 +189,12 @@ export function DiseaseModal({ disease, onClose }: Props) {
           <Text style={[styles.title, { color: colors.foreground }]} numberOfLines={2}>
             {disease.name}
           </Text>
-          <TouchableOpacity onPress={onClose} style={[styles.closeBtn, { backgroundColor: colors.muted }]}>
+          <TouchableOpacity 
+            onPress={onClose} 
+            style={[styles.closeBtn, { backgroundColor: colors.muted }]}
+            accessibilityLabel="閉じる"
+            accessibilityRole="button"
+          >
             <Feather name="x" size={18} color={colors.mutedForeground} />
           </TouchableOpacity>
         </View>
@@ -210,6 +229,7 @@ export function DiseaseModal({ disease, onClose }: Props) {
                 history={disease.weeklyHistory}
                 current={disease.currentCount}
                 level={disease.currentLevel}
+                weekDate={weekDate ?? null}
               />
             </View>
             <View style={styles.chartLegendRow}>
@@ -232,6 +252,10 @@ export function DiseaseModal({ disease, onClose }: Props) {
               <Text style={[styles.sectionTitle, { color: colors.mutedForeground }]}>出席停止規定（参考）</Text>
             </View>
 
+            <Text style={[styles.sectionNote, { color: colors.mutedForeground }]}>
+              ※ 出席停止の規定は学校保健安全法および保育所における感染症対策ガイドラインに基づく一般的な目安です。各自治体・施設により異なる場合がありますので、正確な情報はお子さまの通園・通学先の施設にご確認ください。
+            </Text>
+
             {INSTITUTION_ROWS.map((inst, idx) => (
               <View key={inst.key}>
                 {idx > 0 && (
@@ -248,11 +272,6 @@ export function DiseaseModal({ disease, onClose }: Props) {
                     {disease.schoolRules[inst.key]}
                   </Text>
                 </View>
-                {inst.key === "hoikuen" && (
-                  <Text style={[styles.hoikuenNote, { color: colors.mutedForeground }]}>
-                    ※ 各自治体・施設により異なる場合がありますのでお問い合わせください。
-                  </Text>
-                )}
               </View>
             ))}
 
@@ -269,27 +288,61 @@ export function DiseaseModal({ disease, onClose }: Props) {
           </View>
 
           {/* Related links */}
-          <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border, gap: 0, padding: 0, overflow: "hidden" }]}>
+          <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={styles.rowWithIcon}>
+              <Feather name="link" size={14} color={colors.mutedForeground} />
+              <Text style={[styles.sectionTitle, { color: colors.mutedForeground }]}>関連リンク</Text>
+            </View>
+
             <TouchableOpacity
-              style={[styles.linkRow, { borderBottomColor: colors.border }]}
+              style={[styles.linkRow, { borderTopColor: colors.border }]}
               onPress={() => Linking.openURL("https://www.jihs.go.jp/")}
               activeOpacity={0.7}
             >
-              <View style={[styles.linkIcon, { backgroundColor: colors.level1Bg }]}>
-                <Feather name="activity" size={14} color={colors.level1} />
+              <View style={[styles.linkIcon, { backgroundColor: colors.muted }]}>
+                <Feather name="external-link" size={14} color={colors.primary} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.linkTitle, { color: colors.foreground }]}>感染症週報（IDWR）</Text>
                 <Text style={[styles.linkSub, { color: colors.mutedForeground }]}>国立健康・危機管理研究機構（JIHS）</Text>
               </View>
-              <Feather name="external-link" size={14} color={colors.mutedForeground} />
+              <Feather name="chevron-right" size={15} color={colors.border} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.linkRow, { borderTopColor: colors.border }]}
+              onPress={() => Linking.openURL("https://www.jpeds.or.jp/general/guidelines/post-153330.html")}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.linkIcon, { backgroundColor: colors.muted }]}>
+                <Feather name="external-link" size={14} color={colors.primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.linkTitle, { color: colors.foreground }]}>学校感染症と出席停止期間の基準</Text>
+                <Text style={[styles.linkSub, { color: colors.mutedForeground }]}>日本小児科学会</Text>
+              </View>
+              <Feather name="chevron-right" size={15} color={colors.border} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.linkRow, { borderTopColor: colors.border }]}
+              onPress={() => Linking.openURL(homeDistrict?.url ?? "https://www.metro.tokyo.lg.jp/")}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.linkIcon, { backgroundColor: colors.muted }]}>
+                <Feather name="external-link" size={14} color={colors.primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.linkTitle, { color: colors.foreground }]}>
+                  {homeDistrict?.name ?? "東京都"}公式サイト
+                </Text>
+                <Text style={[styles.linkSub, { color: colors.mutedForeground }]}>
+                  感染症情報・出席停止基準
+                </Text>
+              </View>
+              <Feather name="chevron-right" size={15} color={colors.border} />
             </TouchableOpacity>
           </View>
-
-          {/* Disclaimer */}
-          <Text style={[styles.disclaimer, { color: colors.mutedForeground }]}>
-            ※ 出席停止の規定は学校保健安全法および保育所における感染症対策ガイドラインに基づく一般的な目安です。正確な規定はお子さまの通園・通学先の施設にご確認ください。
-          </Text>
         </ScrollView>
       </View>
       </View>
@@ -371,6 +424,12 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
+  sectionNote: {
+    fontSize: 10,
+    lineHeight: 16,
+    opacity: 0.7,
+    marginTop: -4,
+  },
   rowWithIcon: {
     flexDirection: "row",
     alignItems: "center",
@@ -430,13 +489,6 @@ const styles = StyleSheet.create({
   ruleText: {
     fontSize: 13,
     lineHeight: 20,
-  },
-  hoikuenNote: {
-    fontSize: 11,
-    lineHeight: 16,
-    paddingHorizontal: 16,
-    paddingBottom: 10,
-    marginTop: -2,
   },
   divider: {
     height: StyleSheet.hairlineWidth,

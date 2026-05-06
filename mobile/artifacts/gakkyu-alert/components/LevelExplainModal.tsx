@@ -35,7 +35,12 @@ export function LevelExplainModal({ visible, onClose, currentLevel }: Props) {
         <Pressable style={[styles.sheet, { backgroundColor: colors.card, paddingBottom: Math.max(32, insets.bottom + 16) }]} onPress={() => {}}>
           <View style={styles.sheetHeader}>
             <Text style={[styles.sheetTitle, { color: colors.foreground }]}>感染レベルとは？</Text>
-            <TouchableOpacity onPress={onClose} hitSlop={12}>
+            <TouchableOpacity 
+              onPress={onClose} 
+              hitSlop={12}
+              accessibilityLabel="閉じる"
+              accessibilityRole="button"
+            >
               <Feather name="x" size={20} color={colors.mutedForeground} />
             </TouchableOpacity>
           </View>
@@ -54,7 +59,10 @@ export function LevelExplainModal({ visible, onClose, currentLevel }: Props) {
               ]}
             >
               <View style={[styles.levelBadge, { backgroundColor: LEVEL_COLORS[lv] }]}>
-                <Feather name={LEVEL_ICONS[lv] as any} size={16} color="#fff" />
+                <Text style={styles.levelBadgeNum}>{lv}</Text>
+                <View style={styles.levelBadgeIcon}>
+                  <Feather name={LEVEL_ICONS[lv] as any} size={10} color="#fff" />
+                </View>
               </View>
               <View style={{ flex: 1 }}>
                 <View style={styles.levelTitleRow}>
@@ -118,13 +126,30 @@ const styles = StyleSheet.create({
     borderWidth: 2,
   },
   levelBadge: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
     marginTop: 1,
     flexShrink: 0,
+    position: "relative",
+  },
+  levelBadgeNum: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#fff",
+  },
+  levelBadgeIcon: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: "rgba(0,0,0,0.25)",
+    alignItems: "center",
+    justifyContent: "center",
   },
   levelTitleRow: {
     flexDirection: "row",

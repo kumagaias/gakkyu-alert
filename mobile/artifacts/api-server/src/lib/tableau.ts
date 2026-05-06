@@ -42,6 +42,178 @@ export const ALL_CLOSURE_DISEASES = [
   ...EXTRA_CLOSURE_DISEASES,
 ] as const;
 
+// ---------------------------------------------------------------------------
+// 都道府県コードマップ（全47都道府県）
+// ---------------------------------------------------------------------------
+
+export const PREF_CODE_MAP: Record<string, string> = {
+  "01": "hokkaido",  "02": "aomori",    "03": "iwate",     "04": "miyagi",
+  "05": "akita",     "06": "yamagata",  "07": "fukushima", "08": "ibaraki",
+  "09": "tochigi",   "10": "gunma",     "11": "saitama",   "12": "chiba",
+  "13": "tokyo",     "14": "kanagawa",  "15": "niigata",   "16": "toyama",
+  "17": "ishikawa",  "18": "fukui",     "19": "yamanashi", "20": "nagano",
+  "21": "gifu",      "22": "shizuoka",  "23": "aichi",     "24": "mie",
+  "25": "shiga",     "26": "kyoto",     "27": "osaka",     "28": "hyogo",
+  "29": "nara",      "30": "wakayama",  "31": "tottori",   "32": "shimane",
+  "33": "okayama",   "34": "hiroshima", "35": "yamaguchi", "36": "tokushima",
+  "37": "kagawa",    "38": "ehime",     "39": "kochi",     "40": "fukuoka",
+  "41": "saga",      "42": "nagasaki",  "43": "kumamoto",  "44": "oita",
+  "45": "miyazaki",  "46": "kagoshima", "47": "okinawa",
+};
+
+// 学校等欠席者・感染症情報システム 非参加都道府県
+const NON_PARTICIPATING_PREFS = new Set([
+  "hokkaido", "kanagawa", "okayama", "tokushima", "yamagata",
+]);
+
+export interface PrefClosureEntry {
+  id: string;       // prefId
+  hasData: boolean;
+  diseases: Array<{ id: string; closedClasses: number; weeklyHistory: number[] }>;
+}
+
+/**
+ * 全都道府県 × CLOSURE_DISEASES の学級閉鎖データを取得して週次集計
+ * 直近2週分を返す（今週 + 先週）
+ */
+export async function fetchAllPrefClosures(): Promise<{
+  weekKey: string;
+  prefectures: PrefClosureEntry[];
+}> {
+  // 今週の月曜日をISO週キーに変換
+  const now = new Date();
+  const day = now.getDay();
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
+  monday.setHours(0, 0, 0, 0);
+
+  function isoWeekKey(date: Date): string {
+    const tmp = new Date(date.getTime());
+    tmp.setHours(0, 0, 0, 0);
+    tmp.setDate(tmp.getDate() + 3 - ((tmp.getDay() + 6) % 7));
+    const week1 = new Date(tmp.getFullYear(), 0, 4);
+    const week = 1 + Math.round(((tmp.getTime() - week1.getTime()) / 86400000 - 3 + ((week1.getDay() + 6) % 7)) / 7);
+    return `${tmp.getFullYear()}-W${String(week).padStart(2, "0")}`;
+  }
+
+  const weekKey = isoWeekKey(monday);
+
+  // 過去8週分の月曜日を計算
+  const weeks: Date[] = [];
+  for (let i = 7; i >= 0; i--) {
+    const w = new Date(monday);
+    w.setDate(monday.getDate() - i * 7);
+    weeks.push(w);
+  }
+
+  // 都道府県×疾患×週の組み合わせを並列取得
+  const prefCodes = Object.keys(PREF_CODE_MAP);
+  const CONCURRENCY = 5;
+
+  // 都道府県ごとに全疾患×全週を取得
+  const prefResults = new Map<string, Map<string, number[]>>();
+
+  const prefNameMap: Record<string, string> = {
+    "01": "北海道", "02": "青森県", "03": "岩手県", "04": "宮城県",
+    "05": "秋田県", "06": "山形県", "07": "福島県", "08": "茨城県",
+    "09": "栃木県", "10": "群馬県", "11": "埼玉県", "12": "千葉県",
+    "13": "東京都", "14": "神奈川県", "15": "新潟県", "16": "富山県",
+    "17": "石川県", "18": "福井県", "19": "山梨県", "20": "長野県",
+    "21": "岐阜県", "22": "静岡県", "23": "愛知県", "24": "三重県",
+    "25": "滋賀県", "26": "京都府", "27": "大阪府", "28": "兵庫県",
+    "29": "奈良県", "30": "和歌山県", "31": "鳥取県", "32": "島根県",
+    "33": "岡山県", "34": "広島県", "35": "山口県", "36": "徳島県",
+    "37": "香川県", "38": "愛媛県", "39": "高知県", "40": "福岡県",
+    "41": "佐賀県", "42": "長崎県", "43": "熊本県", "44": "大分県",
+    "45": "宮崎県", "46": "鹿児島県", "47": "沖縄県",
+  };
+
+  for (let i = 0; i < prefCodes.length; i += CONCURRENCY) {
+    const batch = prefCodes.slice(i, i + CONCURRENCY);
+    await Promise.all(batch.map(async (code) => {
+      const prefId = PREF_CODE_MAP[code];
+      if (NON_PARTICIPATING_PREFS.has(prefId)) return;
+
+      const diseaseHistoryMap = new Map<string, number[]>();
+
+      await Promise.all(CLOSURE_DISEASES.map(async (disease) => {
+        try {
+          const p = new URLSearchParams({
+            ":showVizHome": "no",
+            都道府県: `${code}:${prefNameMap[code]}`,
+            疾患名等: `${disease.code}:${disease.name}`,
+          });
+          const url = `${TABLEAU_BASE}?${p}`;
+
+          // リトライ付きフェッチ（最大3回、exponential backoff）
+          let text = "";
+          for (let attempt = 1; attempt <= 3; attempt++) {
+            try {
+              const res = await fetch(url, {
+                headers: { "User-Agent": UA },
+                signal: AbortSignal.timeout(20_000),
+              });
+              if (!res.ok) break;
+              text = await res.text();
+              break;
+            } catch {
+              if (attempt < 3) await new Promise((r) => setTimeout(r, 1000 * attempt));
+            }
+          }
+          if (!text.includes(",")) return;
+
+          const rows = parseCsvText(text);
+          
+          // 週ごとに集計
+          const weeklyData: number[] = [];
+          for (const weekStart of weeks) {
+            const weekEnd = new Date(weekStart);
+            weekEnd.setDate(weekStart.getDate() + 7);
+            
+            let total = 0;
+            for (const row of rows) {
+              if (row["Measure Names"] !== "閉鎖クラス数") continue;
+              const d = new Date(row["Day of 表示年月日"]);
+              if (isNaN(d.getTime())) continue;
+              if (d >= weekStart && d < weekEnd) {
+                total += parseInt(row["Measure Values"] ?? "0", 10) || 0;
+              }
+            }
+            weeklyData.push(total);
+          }
+          
+          diseaseHistoryMap.set(disease.diseaseId, weeklyData);
+        } catch {
+          // 取得失敗は無視
+        }
+      }));
+
+      prefResults.set(prefId, diseaseHistoryMap);
+    }));
+  }
+
+  const prefectures: PrefClosureEntry[] = Object.values(PREF_CODE_MAP).map((prefId) => {
+    if (NON_PARTICIPATING_PREFS.has(prefId)) {
+      return { id: prefId, hasData: false, diseases: [] };
+    }
+    const diseaseHistoryMap = prefResults.get(prefId);
+    if (!diseaseHistoryMap) {
+      return { id: prefId, hasData: true, diseases: [] };
+    }
+    return {
+      id: prefId,
+      hasData: true,
+      diseases: Array.from(diseaseHistoryMap.entries()).map(([id, weeklyHistory]) => ({
+        id,
+        closedClasses: weeklyHistory[7] ?? 0,
+        weeklyHistory,
+      })),
+    };
+  });
+
+  return { weekKey, prefectures };
+}
+
 export interface ClosureEntry {
   diseaseId: string;
   diseaseName: string;

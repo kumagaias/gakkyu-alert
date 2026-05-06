@@ -42,7 +42,8 @@ export interface PrefectureDisease {
 export interface PrefClosureDisease {
   id: string;             // 疾患ID (例: "flu", "covid")
   closedClasses: number;  // 今週の閉鎖クラス数
-  weekAgoClasses: number; // 先週の閉鎖クラス数
+  weekAgoClasses?: number; // 先週の閉鎖クラス数（オプション）
+  weeklyHistory?: number[]; // 過去8週分の推移（オプション）
 }
 
 export interface PrefClosureStatus {
@@ -57,6 +58,7 @@ export interface District {
   level: EpidemicLevel;
   aiSummary: string;
   diseases?: PrefectureDisease[];
+  url?: string;
 }
 
 /** 都道府県 — 将来的に市区町村への分解を見越した構造 */
@@ -67,56 +69,57 @@ export interface Prefecture {
   level: EpidemicLevel;
   aiSummary: string;
   diseases?: PrefectureDisease[];
+  url?: string;  // 自治体の感染症情報ページURL
 }
 
 export const PREFECTURES: Prefecture[] = [
-  { id: "hokkaido",   name: "北海道",   level: 0, aiSummary: "" },
-  { id: "aomori",     name: "青森県",   level: 0, aiSummary: "" },
-  { id: "iwate",      name: "岩手県",   level: 0, aiSummary: "" },
-  { id: "miyagi",     name: "宮城県",   level: 0, aiSummary: "" },
-  { id: "akita",      name: "秋田県",   level: 0, aiSummary: "" },
-  { id: "yamagata",   name: "山形県",   level: 0, aiSummary: "" },
-  { id: "fukushima",  name: "福島県",   level: 0, aiSummary: "" },
-  { id: "ibaraki",    name: "茨城県",   level: 0, aiSummary: "" },
-  { id: "tochigi",    name: "栃木県",   level: 0, aiSummary: "" },
-  { id: "gunma",      name: "群馬県",   level: 0, aiSummary: "" },
-  { id: "saitama",    name: "埼玉県",   level: 0, aiSummary: "" },
-  { id: "chiba",      name: "千葉県",   level: 0, aiSummary: "" },
-  { id: "tokyo",      name: "東京都",   level: 0, aiSummary: "" },
-  { id: "kanagawa",   name: "神奈川県", level: 0, aiSummary: "" },
-  { id: "niigata",    name: "新潟県",   level: 0, aiSummary: "" },
-  { id: "toyama",     name: "富山県",   level: 0, aiSummary: "" },
-  { id: "ishikawa",   name: "石川県",   level: 0, aiSummary: "" },
-  { id: "fukui",      name: "福井県",   level: 0, aiSummary: "" },
-  { id: "yamanashi",  name: "山梨県",   level: 0, aiSummary: "" },
-  { id: "nagano",     name: "長野県",   level: 0, aiSummary: "" },
-  { id: "gifu",       name: "岐阜県",   level: 0, aiSummary: "" },
-  { id: "shizuoka",   name: "静岡県",   level: 0, aiSummary: "" },
-  { id: "aichi",      name: "愛知県",   level: 0, aiSummary: "" },
-  { id: "mie",        name: "三重県",   level: 0, aiSummary: "" },
-  { id: "shiga",      name: "滋賀県",   level: 0, aiSummary: "" },
-  { id: "kyoto",      name: "京都府",   level: 0, aiSummary: "" },
-  { id: "osaka",      name: "大阪府",   level: 0, aiSummary: "" },
-  { id: "hyogo",      name: "兵庫県",   level: 0, aiSummary: "" },
-  { id: "nara",       name: "奈良県",   level: 0, aiSummary: "" },
-  { id: "wakayama",   name: "和歌山県", level: 0, aiSummary: "" },
-  { id: "tottori",    name: "鳥取県",   level: 0, aiSummary: "" },
-  { id: "shimane",    name: "島根県",   level: 0, aiSummary: "" },
-  { id: "okayama",    name: "岡山県",   level: 0, aiSummary: "" },
-  { id: "hiroshima",  name: "広島県",   level: 0, aiSummary: "" },
-  { id: "yamaguchi",  name: "山口県",   level: 0, aiSummary: "" },
-  { id: "tokushima",  name: "徳島県",   level: 0, aiSummary: "" },
-  { id: "kagawa",     name: "香川県",   level: 0, aiSummary: "" },
-  { id: "ehime",      name: "愛媛県",   level: 0, aiSummary: "" },
-  { id: "kochi",      name: "高知県",   level: 0, aiSummary: "" },
-  { id: "fukuoka",    name: "福岡県",   level: 0, aiSummary: "" },
-  { id: "saga",       name: "佐賀県",   level: 0, aiSummary: "" },
-  { id: "nagasaki",   name: "長崎県",   level: 0, aiSummary: "" },
-  { id: "kumamoto",   name: "熊本県",   level: 0, aiSummary: "" },
-  { id: "oita",       name: "大分県",   level: 0, aiSummary: "" },
-  { id: "miyazaki",   name: "宮崎県",   level: 0, aiSummary: "" },
-  { id: "kagoshima",  name: "鹿児島県", level: 0, aiSummary: "" },
-  { id: "okinawa",    name: "沖縄県",   level: 0, aiSummary: "" },
+  { id: "hokkaido",   name: "北海道",   level: 0, aiSummary: "", url: "https://www.pref.hokkaido.lg.jp/" },
+  { id: "aomori",     name: "青森県",   level: 0, aiSummary: "", url: "https://www.pref.aomori.lg.jp/" },
+  { id: "iwate",      name: "岩手県",   level: 0, aiSummary: "", url: "https://www.pref.iwate.jp/" },
+  { id: "miyagi",     name: "宮城県",   level: 0, aiSummary: "", url: "https://www.pref.miyagi.jp/" },
+  { id: "akita",      name: "秋田県",   level: 0, aiSummary: "", url: "https://www.pref.akita.lg.jp/" },
+  { id: "yamagata",   name: "山形県",   level: 0, aiSummary: "", url: "https://www.pref.yamagata.jp/" },
+  { id: "fukushima",  name: "福島県",   level: 0, aiSummary: "", url: "https://www.pref.fukushima.lg.jp/" },
+  { id: "ibaraki",    name: "茨城県",   level: 0, aiSummary: "", url: "https://www.pref.ibaraki.jp/" },
+  { id: "tochigi",    name: "栃木県",   level: 0, aiSummary: "", url: "https://www.pref.tochigi.lg.jp/" },
+  { id: "gunma",      name: "群馬県",   level: 0, aiSummary: "", url: "https://www.pref.gunma.jp/" },
+  { id: "saitama",    name: "埼玉県",   level: 0, aiSummary: "", url: "https://www.pref.saitama.lg.jp/" },
+  { id: "chiba",      name: "千葉県",   level: 0, aiSummary: "", url: "https://www.pref.chiba.lg.jp/" },
+  { id: "tokyo",      name: "東京都",   level: 0, aiSummary: "", url: "https://www.metro.tokyo.lg.jp/" },
+  { id: "kanagawa",   name: "神奈川県", level: 0, aiSummary: "", url: "https://www.pref.kanagawa.jp/" },
+  { id: "niigata",    name: "新潟県",   level: 0, aiSummary: "", url: "https://www.pref.niigata.lg.jp/" },
+  { id: "toyama",     name: "富山県",   level: 0, aiSummary: "", url: "https://www.pref.toyama.jp/" },
+  { id: "ishikawa",   name: "石川県",   level: 0, aiSummary: "", url: "https://www.pref.ishikawa.lg.jp/" },
+  { id: "fukui",      name: "福井県",   level: 0, aiSummary: "", url: "https://www.pref.fukui.lg.jp/" },
+  { id: "yamanashi",  name: "山梨県",   level: 0, aiSummary: "", url: "https://www.pref.yamanashi.jp/" },
+  { id: "nagano",     name: "長野県",   level: 0, aiSummary: "", url: "https://www.pref.nagano.lg.jp/" },
+  { id: "gifu",       name: "岐阜県",   level: 0, aiSummary: "", url: "https://www.pref.gifu.lg.jp/" },
+  { id: "shizuoka",   name: "静岡県",   level: 0, aiSummary: "", url: "https://www.pref.shizuoka.jp/" },
+  { id: "aichi",      name: "愛知県",   level: 0, aiSummary: "", url: "https://www.pref.aichi.jp/" },
+  { id: "mie",        name: "三重県",   level: 0, aiSummary: "", url: "https://www.pref.mie.lg.jp/" },
+  { id: "shiga",      name: "滋賀県",   level: 0, aiSummary: "", url: "https://www.pref.shiga.lg.jp/" },
+  { id: "kyoto",      name: "京都府",   level: 0, aiSummary: "", url: "https://www.pref.kyoto.jp/" },
+  { id: "osaka",      name: "大阪府",   level: 0, aiSummary: "", url: "https://www.pref.osaka.lg.jp/" },
+  { id: "hyogo",      name: "兵庫県",   level: 0, aiSummary: "", url: "https://web.pref.hyogo.lg.jp/" },
+  { id: "nara",       name: "奈良県",   level: 0, aiSummary: "", url: "https://www.pref.nara.jp/" },
+  { id: "wakayama",   name: "和歌山県", level: 0, aiSummary: "", url: "https://www.pref.wakayama.lg.jp/" },
+  { id: "tottori",    name: "鳥取県",   level: 0, aiSummary: "", url: "https://www.pref.tottori.lg.jp/" },
+  { id: "shimane",    name: "島根県",   level: 0, aiSummary: "", url: "https://www.pref.shimane.lg.jp/" },
+  { id: "okayama",    name: "岡山県",   level: 0, aiSummary: "", url: "https://www.pref.okayama.jp/" },
+  { id: "hiroshima",  name: "広島県",   level: 0, aiSummary: "", url: "https://www.pref.hiroshima.lg.jp/" },
+  { id: "yamaguchi",  name: "山口県",   level: 0, aiSummary: "", url: "https://www.pref.yamaguchi.lg.jp/" },
+  { id: "tokushima",  name: "徳島県",   level: 0, aiSummary: "", url: "https://www.pref.tokushima.lg.jp/" },
+  { id: "kagawa",     name: "香川県",   level: 0, aiSummary: "", url: "https://www.pref.kagawa.lg.jp/" },
+  { id: "ehime",      name: "愛媛県",   level: 0, aiSummary: "", url: "https://www.pref.ehime.jp/" },
+  { id: "kochi",      name: "高知県",   level: 0, aiSummary: "", url: "https://www.pref.kochi.lg.jp/" },
+  { id: "fukuoka",    name: "福岡県",   level: 0, aiSummary: "", url: "https://www.pref.fukuoka.lg.jp/" },
+  { id: "saga",       name: "佐賀県",   level: 0, aiSummary: "", url: "https://www.pref.saga.lg.jp/" },
+  { id: "nagasaki",   name: "長崎県",   level: 0, aiSummary: "", url: "https://www.pref.nagasaki.jp/" },
+  { id: "kumamoto",   name: "熊本県",   level: 0, aiSummary: "", url: "https://www.pref.kumamoto.jp/" },
+  { id: "oita",       name: "大分県",   level: 0, aiSummary: "", url: "https://www.pref.oita.jp/" },
+  { id: "miyazaki",   name: "宮崎県",   level: 0, aiSummary: "", url: "https://www.pref.miyazaki.lg.jp/" },
+  { id: "kagoshima",  name: "鹿児島県", level: 0, aiSummary: "", url: "https://www.pref.kagoshima.jp/" },
+  { id: "okinawa",    name: "沖縄県",   level: 0, aiSummary: "", url: "https://www.pref.okinawa.jp/" },
 ];
 
 export interface SchoolClosureEntry {

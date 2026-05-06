@@ -10,7 +10,7 @@ import {
   BedrockRuntimeClient,
   InvokeModelCommand,
 } from "@aws-sdk/client-bedrock-runtime";
-import { fetchAllClosures, fetchExtraClosures, type ClosureEntry } from "../lib/tableau.js";
+import { fetchAllClosures, fetchExtraClosures, fetchAllPrefClosures, type ClosureEntry } from "../lib/tableau.js";
 import { putSnapshot, getSnapshotByKey, getLatestSnapshot } from "../lib/dynamodb.js";
 import { logger } from "../lib/logger.js";
 
@@ -147,4 +147,16 @@ export const handler = async (): Promise<void> => {
   });
 
   logger.info({ sk: today10 }, "スナップショット保存完了");
+
+  // 全都道府県の学級閉鎖データを取得して CLOSURE_BY_PREF に保存
+  try {
+    const { weekKey, prefectures } = await fetchAllPrefClosures();
+    await putSnapshot("CLOSURE_BY_PREF", weekKey, {
+      prefectures,
+      loadedAt: new Date().toISOString(),
+    });
+    logger.info({ sk: weekKey, prefCount: prefectures.filter((p) => p.hasData).length }, "CLOSURE_BY_PREF 保存完了");
+  } catch (err) {
+    logger.error({ err }, "CLOSURE_BY_PREF 取得・保存失敗 — スキップ");
+  }
 };

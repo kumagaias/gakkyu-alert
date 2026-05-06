@@ -17,6 +17,7 @@ import {
   BedrockRuntimeClient,
   InvokeModelCommand,
 } from "@aws-sdk/client-bedrock-runtime";
+import pLimit from "p-limit";
 import { fetchLatestIdwrData, PREF_ID_MAP, type IdwrRecord } from "../lib/idwr.js";
 import {
   fetchLatestTmiphData,
@@ -26,6 +27,7 @@ import {
   putSnapshot,
   getSnapshotByKey,
   querySnapshots,
+  getLatestSnapshot,
 } from "../lib/dynamodb.js";
 import { logger } from "../lib/logger.js";
 
@@ -36,6 +38,9 @@ import { logger } from "../lib/logger.js";
 // Amazon Nova Lite — Haiku より安価、日本語品質十分
 const NOVA_MODEL = "amazon.nova-lite-v1:0";
 const WEEKLY_HISTORY_WEEKS = 8;
+
+// Bedrock API レート制限対策: 同時実行数を制限
+const BEDROCK_CONCURRENCY = 1;
 
 // 都道府県の日本語名
 const PREF_NAMES: Record<string, string> = Object.fromEntries(
@@ -69,6 +74,14 @@ const COVID_THRESHOLDS = [
   { level: 2, min: 10 },
   { level: 1, min: 2  },
   { level: 0, min: 0  },
+] as const;
+
+// 学級閉鎖数ベースの閾値（都道府県単位）
+const CLOSURE_THRESHOLDS = [
+  { level: 3, min: 30 },  // 流行: 30クラス以上
+  { level: 2, min: 10 },  // 警戒: 10クラス以上
+  { level: 1, min: 1  },  // 注意: 1クラス以上
+  { level: 0, min: 0  },  // なし
 ] as const;
 
 // ---------------------------------------------------------------------------
@@ -114,12 +127,6 @@ function calcLevel(
   return 0;
 }
 
-function prefLevel(fluPerSentinel: number, covidPerSentinel: number): 0 | 1 | 2 | 3 {
-  return Math.max(
-    calcLevel(fluPerSentinel, FLU_THRESHOLDS),
-    calcLevel(covidPerSentinel, COVID_THRESHOLDS)
-  ) as 0 | 1 | 2 | 3;
-}
 
 function isoWeekKey(year: number, week: number): string {
   return `${year}-W${String(week).padStart(2, "0")}`;
@@ -140,20 +147,45 @@ async function invokeNova(
   prompt: string,
   maxTokens = 200
 ): Promise<string> {
-  const res = await client.send(
-    new InvokeModelCommand({
-      modelId: NOVA_MODEL,
-      contentType: "application/json",
-      accept: "application/json",
-      body: JSON.stringify({
-        messages: [{ role: "user", content: [{ text: prompt }] }],
-        inferenceConfig: { max_new_tokens: maxTokens },
-      }),
-    })
-  );
-  const body = JSON.parse(new TextDecoder().decode(res.body)) as NovaResponseBody;
-  await sleep(800);
-  return body.output?.message?.content?.[0]?.text?.trim() ?? "";
+  const maxRetries = 3;
+  let lastError: Error | undefined;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const res = await client.send(
+        new InvokeModelCommand({
+          modelId: NOVA_MODEL,
+          contentType: "application/json",
+          accept: "application/json",
+          body: JSON.stringify({
+            messages: [{ role: "user", content: [{ text: prompt }] }],
+            inferenceConfig: { max_new_tokens: maxTokens },
+          }),
+        })
+      );
+      const body = JSON.parse(new TextDecoder().decode(res.body)) as NovaResponseBody;
+      
+      // スロットリング対策: リクエスト間隔を長めに設定
+      await sleep(3000);
+      
+      return body.output?.message?.content?.[0]?.text?.trim() ?? "";
+    } catch (err) {
+      lastError = err as Error;
+      
+      // ThrottlingException の場合は exponential backoff でリトライ
+      if (err && typeof err === "object" && "name" in err && err.name === "ThrottlingException") {
+        const backoffMs = Math.min(1000 * Math.pow(2, attempt - 1), 30000);
+        logger.warn({ attempt, backoffMs }, "Bedrock throttled, retrying...");
+        await sleep(backoffMs);
+        continue;
+      }
+      
+      // その他のエラーは即座に throw
+      throw err;
+    }
+  }
+  
+  throw lastError ?? new Error("invokeNova failed after retries");
 }
 
 // ---------------------------------------------------------------------------
@@ -215,6 +247,13 @@ async function generateDiseaseComment(
 ): Promise<string> {
   const trend =
     level === 3 ? "急増" : level === 2 ? "増加中" : level === 1 ? "散発" : "落ち着き";
+  
+  // 胃腸炎は具体的な注意喚起を追加
+  const isGastro = diseaseId === "gastro" && level >= 1;
+  const extraGuidance = isGastro
+    ? "\n感染性胃腸炎が注意レベルです。手洗い・うがいの徹底、嘔吐物の適切な処理、症状がある場合は登園・登校を控えるなど、具体的な予防策を含めてください。"
+    : "";
+  
   // キャッシュキー: prefId#diseaseId を id とし、level 変化でキャッシュミス
   return getCachedOrGenerateSummary(
     client,
@@ -225,7 +264,7 @@ async function generateDiseaseComment(
 疾患ID: ${diseaseId}
 定点あたり患者数: ${perSentinel.toFixed(2)}
 流行レベル: ${level} (0=なし, 1=注意, 2=警戒, 3=流行)
-傾向: ${trend}
+傾向: ${trend}${extraGuidance}
 出力は日本語の1〜2文のみ。余分な説明不要。`
   );
 }
@@ -351,21 +390,15 @@ export const handler = async (): Promise<void> => {
 
   const diseases: DiseaseStatus[] = [];
   for (const [diseaseId, rec] of tokyoByDisease) {
-    const level = calcLevel(rec.perSentinel, FLU_THRESHOLDS);
-    let aiComment = "";
-    try {
-      aiComment = await generateDiseaseComment(bedrock, "tokyo", "東京都", diseaseId, rec.perSentinel, level);
-    } catch (err) {
-      logger.warn({ diseaseId, err }, "疾患 AI コメント生成失敗 — スキップ");
-    }
+    const sentinelLevel = calcLevel(rec.perSentinel, FLU_THRESHOLDS);
     diseases.push({
       id: diseaseId,
-      currentLevel: level,
+      currentLevel: sentinelLevel,
       currentCount: rec.perSentinel,
       lastWeekCount: 0,
       twoWeeksAgoCount: 0,
       weeklyHistory: [],
-      aiComment,
+      aiComment: "",
       aiOutlook: "",
     });
   }
@@ -375,6 +408,33 @@ export const handler = async (): Promise<void> => {
     logger.info({ weekKey }, "週次履歴 構築完了");
   } catch (err) {
     logger.warn({ err }, "週次履歴 構築失敗 — スキップ");
+  }
+
+  // 学級閉鎖データを取得して流行レベルを再計算
+  const diseaseClosureData = await getLatestSnapshot<{ entries: Array<{ diseaseId: string; closedClasses: number }> }>(
+    "CLOSURE"
+  ).catch(() => null);
+
+  for (const disease of diseases) {
+    const closure = diseaseClosureData?.entries?.find((e) => e.diseaseId === disease.id);
+    if (closure) {
+      const closureLevel = calcLevel(closure.closedClasses, CLOSURE_THRESHOLDS);
+      disease.currentLevel = Math.max(disease.currentLevel, closureLevel) as 0 | 1 | 2 | 3;
+    }
+
+    // レベル確定後にAIコメント生成
+    try {
+      disease.aiComment = await generateDiseaseComment(
+        bedrock,
+        "tokyo",
+        "東京都",
+        disease.id,
+        disease.currentCount,
+        disease.currentLevel
+      );
+    } catch (err) {
+      logger.warn({ diseaseId: disease.id, err }, "疾患 AI コメント生成失敗 — スキップ");
+    }
   }
 
   // 週次履歴が揃った後に来週の見通しを生成
@@ -493,11 +553,23 @@ export const handler = async (): Promise<void> => {
     diseases: PrefDiseaseEntry[];
   }> = [];
 
+  // 並列実行制限を設定（全都道府県で共有）
+  const limit = pLimit(BEDROCK_CONCURRENCY);
+
+  // 全都道府県のデータ準備（週次履歴構築）
+  const prefDataList: Array<{
+    prefId: string;
+    prefName: string;
+    level: 0 | 1 | 2 | 3;
+    flu: number;
+    covid: number;
+    diseaseBreakdown: PrefDiseaseEntry[];
+  }> = [];
+
   for (const [prefId, { flu, covid, all }] of prefMap) {
-    const level = prefLevel(flu, covid);
     const prefName = PREF_NAMES[prefId] ?? prefId;
 
-    // 疾患ごとに週次履歴・AI を構築
+    // 疾患ごとに週次履歴を構築
     const diseaseBreakdown: PrefDiseaseEntry[] = Array.from(all.entries()).map(
       ([diseaseId, perSentinel]) => ({
         id: diseaseId,
@@ -510,6 +582,12 @@ export const handler = async (): Promise<void> => {
         aiOutlook: "",
       })
     );
+
+    // 全疾患の最大レベルを都道府県レベルとする
+    const level = diseaseBreakdown.reduce(
+      (max, d) => Math.max(max, d.level),
+      0
+    ) as 0 | 1 | 2 | 3;
 
     // 週次履歴: 過去スナップから perSentinel を抽出
     for (const disease of diseaseBreakdown) {
@@ -524,26 +602,67 @@ export const handler = async (): Promise<void> => {
       disease.twoWeeksAgoCount = counts[counts.length - 2] ?? 0;
     }
 
-    // AI コメント (level > 0 の疾患のみ生成、キャッシュあり)
-    // level = 0 (平穏) はコメント不要 → Bedrock 呼び出し数を大幅削減
+    prefDataList.push({ prefId, prefName, level, flu, covid, diseaseBreakdown });
+  }
+
+  // AI コメント生成タスクを全都道府県分まとめて並列実行制限
+  const allAiTasks: Promise<void>[] = [];
+
+  for (const { prefId, prefName, level, flu, covid, diseaseBreakdown } of prefDataList) {
+    // 疾患別 AI コメント (level > 0 のみ)
     for (const disease of diseaseBreakdown) {
       if (disease.level === 0) continue;
-      try {
-        disease.aiComment = await generateDiseaseComment(
-          bedrock, prefId, prefName, disease.id, disease.perSentinel, disease.level
-        );
-      } catch (err) {
-        logger.warn({ prefId, diseaseId: disease.id, err }, "都道府県疾患 AI コメント生成失敗 — スキップ");
-      }
+      allAiTasks.push(
+        limit(async () => {
+          try {
+            disease.aiComment = await generateDiseaseComment(
+              bedrock, prefId, prefName, disease.id, disease.perSentinel, disease.level
+            );
+          } catch (err) {
+            logger.warn({ prefId, diseaseId: disease.id, err }, "都道府県疾患 AI コメント生成失敗 — スキップ");
+          }
+        })
+      );
     }
 
-    let aiSummary = "";
-    try {
-      aiSummary = await generatePrefSummary(bedrock, prefId, level, flu, covid);
-    } catch (err) {
-      logger.warn({ prefId, err }, "都道府県 AI サマリー生成失敗 — スキップ");
+    // 都道府県サマリー
+    allAiTasks.push(
+      limit(async () => {
+        try {
+          const aiSummary = await generatePrefSummary(bedrock, prefId, level, flu, covid);
+          prefectures.push({ id: prefId, level, aiSummary, diseases: diseaseBreakdown });
+        } catch (err) {
+          logger.warn({ prefId, err }, "都道府県 AI サマリー生成失敗 — スキップ");
+          prefectures.push({ id: prefId, level, aiSummary: "", diseases: diseaseBreakdown });
+        }
+      })
+    );
+  }
+
+  // 全タスクを並列実行（制限付き）
+  await Promise.all(allAiTasks);
+
+  // 学級閉鎖データを取得して流行レベルを再計算
+  const prefClosureData = await getSnapshotByKey<{ prefectures: Array<{ id: string; hasData: boolean; diseases: Array<{ id: string; closedClasses: number }> }> }>(
+    "CLOSURE_BY_PREF",
+    weekKey
+  );
+
+  function calcClosureLevel(closedClasses: number): 0 | 1 | 2 | 3 {
+    if (closedClasses >= 30) return 3;
+    if (closedClasses >= 10) return 2;
+    if (closedClasses >= 1) return 1;
+    return 0;
+  }
+
+  // 定点サーベイランスと学級閉鎖の両方を考慮して流行レベルを再計算
+  for (const pref of prefectures) {
+    const closure = prefClosureData?.prefectures?.find((p: any) => p.id === pref.id);
+    if (closure?.hasData) {
+      const totalClosed = closure.diseases.reduce((sum: number, d: any) => sum + d.closedClasses, 0);
+      const closureLevel = calcClosureLevel(totalClosed);
+      pref.level = Math.max(pref.level, closureLevel);
     }
-    prefectures.push({ id: prefId, level, aiSummary, diseases: diseaseBreakdown });
   }
 
   await putSnapshot("PREFECTURE_STATUS", weekKey, {

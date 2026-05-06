@@ -23,7 +23,12 @@ router.get("/status", async (_req, res) => {
 
     const schoolClosures = closureSnap
       ? {
-          lastUpdated: (closureSnap.sk as string | undefined) ?? new Date().toISOString().slice(0, 10),
+          lastUpdated: (() => {
+            const src = (closureSnap.entries as Array<{ sourceUpdatedAt?: string | null }> | undefined)?.[0]?.sourceUpdatedAt;
+            if (!src) return (closureSnap.sk as string | undefined) ?? new Date().toISOString().slice(0, 10);
+            const m = src.match(/(\d{4})年(\d{2})月(\d{2})日/);
+            return m ? `${m[1]}-${m[2]}-${m[3]}` : (closureSnap.sk as string | undefined) ?? new Date().toISOString().slice(0, 10);
+          })(),
           sourceUrl: closureSnap.sourceUrl ?? "",
           tableauUrl: closureSnap.tableauUrl ?? "",
           entries: (closureSnap.entries as unknown[]) ?? [],
@@ -76,13 +81,24 @@ router.get("/status", async (_req, res) => {
           id: d.id as string,
           closedClasses: (d.closedClasses ?? 0) as number,
           weekAgoClasses: ((prevD?.closedClasses) ?? 0) as number,
+          weeklyHistory: (d.weeklyHistory ?? []) as number[],
         };
       });
       return { id: p.id as string, hasData: true, diseases };
     });
 
+    // "2026-W15" → last day of that week as "YYYY-MM-DD"
+    const diseaseWeekDate = (() => {
+      const sk = diseaseSnap?.sk as string | undefined;
+      const m = sk?.match(/^(\d{4})-W(\d{1,2})$/);
+      if (!m) return new Date().toISOString().slice(0, 10);
+      const d = new Date(parseInt(m[1], 10), 0, parseInt(m[2], 10) * 7);
+      return d.toISOString().slice(0, 10);
+    })();
+
     res.json({
       asOf: new Date().toISOString(),
+      diseaseWeekDate,
       schoolClosures,
       diseases,
       districts,

@@ -23,7 +23,14 @@ setBaseUrl(
 );
 
 const queryClient = new QueryClient({
-  defaultOptions: { queries: { staleTime: 60 * 60 * 1000, retry: 2 } },
+  defaultOptions: { 
+    queries: { 
+      staleTime: 5 * 60 * 1000, // 5分（1時間から短縮）
+      retry: 2,
+      refetchOnMount: true, // アプリ起動時に再取得
+      refetchOnWindowFocus: true, // フォーカス時に再取得
+    } 
+  },
 });
 
 const APP_MAX_WIDTH = 480;

@@ -1,6 +1,23 @@
 import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
-import { getLatestSnapshot, querySnapshots } from "../../lib/dynamodb.js";
+import { getLatestSnapshot, querySnapshots, queryAllDevices, queryDevicesPaged } from "../../lib/dynamodb.js";
 import { logger } from "../../lib/logger.js";
+
+interface DeviceRecord { pk: string; sk: string; platform?: string; alertLevel?: number; homeDistrictId?: string; updatedAt?: string; deviceModel?: string; }
+
+async function sendExpoPush(tokens: string[], title: string, body: string): Promise<{ success: number; failure: number }> {
+  const res = await fetch("https://exp.host/--/api/v2/push/send", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify(tokens.map((to) => ({ to, title, body, sound: "default", priority: "high" }))),
+    signal: AbortSignal.timeout(15_000),
+  });
+  if (!res.ok) throw new Error(`Expo Push API: ${res.status}`);
+  const json = (await res.json()) as { data: Array<{ status: string }> };
+  return {
+    success: json.data.filter((t) => t.status === "ok").length,
+    failure: json.data.filter((t) => t.status !== "ok").length,
+  };
+}
 
 const router: IRouter = Router();
 
@@ -120,6 +137,74 @@ router.get("/admin/diseases", async (_req, res) => {
   } catch (err) {
     logger.error({ err }, "GET /v1/admin/diseases エラー");
     res.status(500).json({ error: "サーバーエラー" });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// GET /v1/admin/devices — 登録デバイス一覧（ページング対応）
+// ---------------------------------------------------------------------------
+
+router.get("/admin/devices", async (req, res) => {
+  try {
+    const limit = Math.min(Number(req.query["limit"] ?? 20), 100);
+    const lastKey = req.query["lastKey"] ? JSON.parse(decodeURIComponent(req.query["lastKey"] as string)) : undefined;
+
+    const result = await queryDevicesPaged<DeviceRecord>({ limit, lastKey });
+    res.json({
+      devices: result.items.map((d) => ({
+        token: d.sk,
+        platform: d.platform ?? "unknown",
+        alertLevel: d.alertLevel ?? null,
+        homeDistrictId: d.homeDistrictId ?? null,
+        updatedAt: d.updatedAt ?? null,
+        deviceModel: d.deviceModel ?? null,
+      })),
+      nextKey: result.lastKey ? encodeURIComponent(JSON.stringify(result.lastKey)) : null,
+    });
+  } catch (err) {
+    logger.error({ err }, "GET /v1/admin/devices エラー");
+    res.status(500).json({ error: "サーバーエラー" });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// POST /v1/admin/test-push — テスト Push 通知送信
+// body: { token?: string, title?: string, body?: string }
+//   token が未指定の場合は登録済み全デバイスに送信
+// ---------------------------------------------------------------------------
+
+router.post("/admin/test-push", async (req, res) => {
+  const { token, title, body } = req.body as { token?: string; title?: string; body?: string };
+  const notifTitle = title?.trim() || "テスト通知";
+  const notifBody  = body?.trim()  || "これはテスト通知です";
+
+  try {
+    let tokens: string[];
+    if (token?.trim()) {
+      tokens = [token.trim()];
+    } else {
+      const devices = await queryAllDevices<DeviceRecord>();
+      tokens = devices.map((d) => d.sk);
+    }
+
+    if (tokens.length === 0) {
+      res.json({ sent: 0, success: 0, failure: 0, message: "登録済みデバイスなし" });
+      return;
+    }
+
+    const BATCH = 100;
+    let success = 0, failure = 0;
+    for (let i = 0; i < tokens.length; i += BATCH) {
+      const r = await sendExpoPush(tokens.slice(i, i + BATCH), notifTitle, notifBody);
+      success += r.success;
+      failure += r.failure;
+    }
+
+    logger.info({ sent: tokens.length, success, failure }, "テスト Push 送信完了");
+    res.json({ sent: tokens.length, success, failure });
+  } catch (err) {
+    logger.error({ err }, "POST /v1/admin/test-push エラー");
+    res.status(500).json({ error: "送信失敗" });
   }
 });
 
