@@ -17,7 +17,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "jp.gakkyu-alert.app",
-      "buildNumber": "25",
+      "buildNumber": "26",
       "icon": "./assets/images/icon.png",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "現在地から居住都道府県を自動取得するために使用します。",
@@ -29,6 +29,7 @@
     },
     "android": {
       "package": "jp.gakkyu_alert.app",
+      "versionCode": 25,
       "icon": "./assets/images/icon.png",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
