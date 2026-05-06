@@ -29,7 +29,7 @@
     },
     "android": {
       "package": "jp.gakkyu_alert.app",
-      "versionCode": 25,
+      "versionCode": 26,
       "icon": "./assets/images/icon.png",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
