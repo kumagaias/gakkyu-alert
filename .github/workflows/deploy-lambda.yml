@@ -1,11 +1,11 @@
 name: Deploy Lambda
 
-# dev/main へのマージ時、Lambda に関連するファイルが変更された場合に実行
-# dev → gakkyu-alert-*-dev Lambda
+# develop/main へのマージ時、Lambda に関連するファイルが変更された場合に実行
+# develop → gakkyu-alert-*-dev Lambda
 # main → gakkyu-alert-*-prd Lambda
 on:
   push:
-    branches: [dev, main]
+    branches: [develop, main]
     paths:
       - 'mobile/artifacts/api-server/**'
       - 'mobile/lib/**'
