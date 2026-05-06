@@ -31,7 +31,7 @@ resource "aws_amplify_branch" "this" {
   app_id      = aws_amplify_app.this.id
   branch_name = var.branch_name
 
-  enable_auto_build      = true
+  enable_auto_build      = false
   enable_basic_auth      = var.basic_auth_credentials != null
   basic_auth_credentials = var.basic_auth_credentials
 }

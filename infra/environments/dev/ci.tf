@@ -93,6 +93,17 @@ resource "aws_iam_role_policy" "github_actions_deploy_policy" {
           module.lambda_send_alerts.function_arn,
         ]
       },
+      # Amplify ビルドのトリガー (GitHub Actions が path フィルター付きで起動)
+      {
+        Effect   = "Allow"
+        Action   = ["amplify:ListApps"]
+        Resource = "*"
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["amplify:StartJob"]
+        Resource = "arn:aws:amplify:${var.aws_region}:843925270284:apps/*/branches/*"
+      },
     ]
   })
 }
