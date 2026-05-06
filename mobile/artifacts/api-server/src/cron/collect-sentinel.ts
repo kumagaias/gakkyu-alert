@@ -27,6 +27,7 @@ import {
   putSnapshot,
   getSnapshotByKey,
   querySnapshots,
+  getLatestSnapshot,
 } from "../lib/dynamodb.js";
 import { logger } from "../lib/logger.js";
 
@@ -126,12 +127,6 @@ function calcLevel(
   return 0;
 }
 
-function prefLevel(fluPerSentinel: number, covidPerSentinel: number): 0 | 1 | 2 | 3 {
-  return Math.max(
-    calcLevel(fluPerSentinel, FLU_THRESHOLDS),
-    calcLevel(covidPerSentinel, COVID_THRESHOLDS)
-  ) as 0 | 1 | 2 | 3;
-}
 
 function isoWeekKey(year: number, week: number): string {
   return `${year}-W${String(week).padStart(2, "0")}`;
@@ -252,6 +247,13 @@ async function generateDiseaseComment(
 ): Promise<string> {
   const trend =
     level === 3 ? "急増" : level === 2 ? "増加中" : level === 1 ? "散発" : "落ち着き";
+  
+  // 胃腸炎は具体的な注意喚起を追加
+  const isGastro = diseaseId === "gastro" && level >= 1;
+  const extraGuidance = isGastro
+    ? "\n感染性胃腸炎が注意レベルです。手洗い・うがいの徹底、嘔吐物の適切な処理、症状がある場合は登園・登校を控えるなど、具体的な予防策を含めてください。"
+    : "";
+  
   // キャッシュキー: prefId#diseaseId を id とし、level 変化でキャッシュミス
   return getCachedOrGenerateSummary(
     client,
@@ -262,7 +264,7 @@ async function generateDiseaseComment(
 疾患ID: ${diseaseId}
 定点あたり患者数: ${perSentinel.toFixed(2)}
 流行レベル: ${level} (0=なし, 1=注意, 2=警戒, 3=流行)
-傾向: ${trend}
+傾向: ${trend}${extraGuidance}
 出力は日本語の1〜2文のみ。余分な説明不要。`
   );
 }
@@ -388,21 +390,15 @@ export const handler = async (): Promise<void> => {
 
   const diseases: DiseaseStatus[] = [];
   for (const [diseaseId, rec] of tokyoByDisease) {
-    const level = calcLevel(rec.perSentinel, FLU_THRESHOLDS);
-    let aiComment = "";
-    try {
-      aiComment = await generateDiseaseComment(bedrock, "tokyo", "東京都", diseaseId, rec.perSentinel, level);
-    } catch (err) {
-      logger.warn({ diseaseId, err }, "疾患 AI コメント生成失敗 — スキップ");
-    }
+    const sentinelLevel = calcLevel(rec.perSentinel, FLU_THRESHOLDS);
     diseases.push({
       id: diseaseId,
-      currentLevel: level,
+      currentLevel: sentinelLevel,
       currentCount: rec.perSentinel,
       lastWeekCount: 0,
       twoWeeksAgoCount: 0,
       weeklyHistory: [],
-      aiComment,
+      aiComment: "",
       aiOutlook: "",
     });
   }
@@ -412,6 +408,33 @@ export const handler = async (): Promise<void> => {
     logger.info({ weekKey }, "週次履歴 構築完了");
   } catch (err) {
     logger.warn({ err }, "週次履歴 構築失敗 — スキップ");
+  }
+
+  // 学級閉鎖データを取得して流行レベルを再計算
+  const latestClosure = await getLatestSnapshot<{ entries: Array<{ diseaseId: string; closedClasses: number }> }>(
+    "CLOSURE"
+  ).catch(() => null);
+
+  for (const disease of diseases) {
+    const closure = latestClosure?.entries?.find((e) => e.diseaseId === disease.id);
+    if (closure) {
+      const closureLevel = calcLevel(closure.closedClasses, CLOSURE_THRESHOLDS);
+      disease.currentLevel = Math.max(disease.currentLevel, closureLevel) as 0 | 1 | 2 | 3;
+    }
+
+    // レベル確定後にAIコメント生成
+    try {
+      disease.aiComment = await generateDiseaseComment(
+        bedrock,
+        "tokyo",
+        "東京都",
+        disease.id,
+        disease.currentCount,
+        disease.currentLevel
+      );
+    } catch (err) {
+      logger.warn({ diseaseId: disease.id, err }, "疾患 AI コメント生成失敗 — スキップ");
+    }
   }
 
   // 週次履歴が揃った後に来週の見通しを生成
@@ -544,7 +567,6 @@ export const handler = async (): Promise<void> => {
   }> = [];
 
   for (const [prefId, { flu, covid, all }] of prefMap) {
-    const level = prefLevel(flu, covid);
     const prefName = PREF_NAMES[prefId] ?? prefId;
 
     // 疾患ごとに週次履歴を構築
@@ -560,6 +582,12 @@ export const handler = async (): Promise<void> => {
         aiOutlook: "",
       })
     );
+
+    // 全疾患の最大レベルを都道府県レベルとする
+    const level = diseaseBreakdown.reduce(
+      (max, d) => Math.max(max, d.level),
+      0
+    ) as 0 | 1 | 2 | 3;
 
     // 週次履歴: 過去スナップから perSentinel を抽出
     for (const disease of diseaseBreakdown) {
