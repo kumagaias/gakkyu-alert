@@ -25,7 +25,7 @@ variable "github_repository_url" {
 variable "branch_name" {
   description = "Git branch to track for deployment"
   type        = string
-  default     = "dev"
+  default     = "develop"
 }
 
 variable "github_token" {
