@@ -1,0 +1,72 @@
+services:
+  mcp-server:
+    build:
+      context: ./mcp-server
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    environment:
+      PORT: "5000"
+      API_BASE_URL: ${API_BASE_URL:-https://api.gakkyu-alert.com}
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:5000/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  surveillance-agent:
+    build:
+      context: ./a2a-agents
+      dockerfile: Dockerfile
+      args:
+        ENTRY: src/surveillance/server.ts
+    ports:
+      - "5001:5001"
+    environment:
+      PORT: "5001"
+      MCP_BASE_URL: http://mcp-server:5000
+    depends_on:
+      mcp-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:5001/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  analysis-agent:
+    build:
+      context: ./a2a-agents
+      dockerfile: Dockerfile
+      args:
+        ENTRY: src/analysis/server.ts
+    ports:
+      - "5002:5002"
+    environment:
+      PORT: "5002"
+      AWS_REGION: ${AWS_REGION:-ap-northeast-1}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:5002/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  orchestrator-agent:
+    build:
+      context: ./a2a-agents
+      dockerfile: Dockerfile
+      args:
+        ENTRY: src/orchestrator/server.ts
+    ports:
+      - "5003:5003"
+    environment:
+      PORT: "5003"
+      SURVEILLANCE_AGENT_URL: http://surveillance-agent:5001
+      ANALYSIS_AGENT_URL: http://analysis-agent:5002
+    depends_on:
+      surveillance-agent:
+        condition: service_healthy
+      analysis-agent:
+        condition: service_healthy
