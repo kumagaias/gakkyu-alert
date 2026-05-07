@@ -1,4 +1,5 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import cors from "cors";
 import express, { type Request, type Response } from "express";
@@ -101,7 +102,29 @@ app.delete("/mcp", async (req: Request, res: Response) => {
   sessions.delete(sessionId);
 });
 
+// SSE transport — legacy/Prompt Opinion compatibility (/sse endpoint)
+const sseTransports = new Map<string, SSEServerTransport>();
+
+app.get("/sse", async (req: Request, res: Response) => {
+  const transport = new SSEServerTransport("/sse/message", res);
+  const server = createMcpServer(req);
+  await server.connect(transport);
+  sseTransports.set(transport.sessionId, transport);
+  transport.onclose = () => sseTransports.delete(transport.sessionId);
+});
+
+app.post("/sse/message", async (req: Request, res: Response) => {
+  const sessionId = req.query["sessionId"] as string;
+  const transport = sseTransports.get(sessionId);
+  if (!transport) {
+    res.status(404).json({ error: "SSE session not found" });
+    return;
+  }
+  await transport.handlePostMessage(req, res, req.body);
+});
+
 app.listen(PORT, () => {
   console.log(`gakkyu-alert FHIR MCP server running on port ${PORT}`);
   console.log(`API_BASE_URL: ${process.env.API_BASE_URL ?? "http://localhost:3000"}`);
+  console.log(`SYNTHETIC_MODE: ${process.env.SYNTHETIC_MODE ?? "false"}`);
 });
