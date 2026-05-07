@@ -1,3 +1,5 @@
+import { generateSyntheticStatus } from "./synthetic.js";
+
 const API_BASE_URL = process.env.API_BASE_URL ?? "http://localhost:3000";
 
 export interface ClosureEntry {
@@ -65,6 +67,9 @@ export interface StatusResponse {
 }
 
 export async function fetchStatus(): Promise<StatusResponse> {
+  if (process.env.SYNTHETIC_MODE === "true") {
+    return generateSyntheticStatus();
+  }
   const res = await fetch(`${API_BASE_URL}/api/v1/status`, {
     signal: AbortSignal.timeout(15_000),
   });
