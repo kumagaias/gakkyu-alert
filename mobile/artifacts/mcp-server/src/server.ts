@@ -63,12 +63,12 @@ app.post("/mcp", async (req: Request, res: Response) => {
 
     const server = createMcpServer(req);
     await server.connect(transport);
+    await transport.handleRequest(req, res, req.body);
 
+    // sessionId is assigned by the transport during handleRequest (initialize)
     if (transport.sessionId) {
       sessions.set(transport.sessionId, transport);
     }
-
-    await transport.handleRequest(req, res, req.body);
   } catch (err) {
     if (!res.headersSent) {
       res.status(500).json({
