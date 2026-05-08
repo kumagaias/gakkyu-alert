@@ -46,9 +46,7 @@ async function ensureSession(): Promise<void> {
   sessionId = res.headers.get("mcp-session-id") ?? undefined;
 }
 
-async function callMcp(toolName: string, args: Record<string, unknown>): Promise<string> {
-  await ensureSession();
-
+async function doCall(toolName: string, args: Record<string, unknown>): Promise<string> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     Accept: MCP_ACCEPT,
@@ -74,6 +72,22 @@ async function callMcp(toolName: string, args: Record<string, unknown>): Promise
   const data = parseSseBody(text);
   if (data.error) throw new Error(`MCP error ${data.error.code}: ${data.error.message}`);
   return data.result?.content[0]?.text ?? "{}";
+}
+
+async function callMcp(toolName: string, args: Record<string, unknown>): Promise<string> {
+  await ensureSession();
+  try {
+    return await doCall(toolName, args);
+  } catch (err) {
+    // Lambda cold start: session lost → reinitialize and retry once
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes("not initialized") || msg.includes("session")) {
+      sessionId = undefined;
+      await ensureSession();
+      return await doCall(toolName, args);
+    }
+    throw err;
+  }
 }
 
 export async function getOutbreakAlertLevel(districtId?: string): Promise<string> {

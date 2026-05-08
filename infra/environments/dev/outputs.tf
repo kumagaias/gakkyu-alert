@@ -58,6 +58,16 @@ output "ecr_send_alerts_url" {
   value       = module.ecr_send_alerts.repository_url
 }
 
+output "mcp_server_url" {
+  description = "MCP サーバー Lambda Function URL"
+  value       = aws_lambda_function_url.mcp_server.function_url
+}
+
+output "ecr_mcp_server_url" {
+  description = "MCP サーバー Lambda の ECR リポジトリ URL"
+  value       = module.ecr_mcp_server.repository_url
+}
+
 output "ci_deploy_role_arn" {
   description = "GitHub Actions が AssumeRole する IAM ロール ARN (AWS_DEPLOY_ROLE_ARN に設定)"
   value       = aws_iam_role.github_actions_deploy.arn

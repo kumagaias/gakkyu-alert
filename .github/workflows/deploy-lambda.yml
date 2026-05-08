@@ -8,6 +8,7 @@ on:
     branches: [develop, main]
     paths:
       - 'mobile/artifacts/api-server/**'
+      - 'mobile/artifacts/mcp-server/**'
       - 'mobile/lib/**'
       - 'mobile/Dockerfile'
       - 'mobile/pnpm-lock.yaml'
@@ -78,5 +79,46 @@ jobs:
           aws lambda update-function-code \
             --function-name "gakkyu-alert-${{ matrix.handler }}-${{ env.ENVIRONMENT }}" \
             --image-uri "${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/gakkyu-alert-${{ matrix.handler }}-${{ env.ENVIRONMENT }}:${{ github.sha }}" \
+            --query '{FunctionName:FunctionName,CodeSize:CodeSize,LastModified:LastModified}' \
+            --output table
+
+  deploy-mcp-server:
+    name: mcp-server (${{ github.ref_name == 'main' && 'prd' || 'dev' }})
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: "arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/gakkyu-alert-github-actions-deploy-${{ env.ENVIRONMENT }}"
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push MCP server to ECR
+        uses: docker/build-push-action@v6
+        with:
+          context: mobile
+          file: mobile/artifacts/mcp-server/Dockerfile.lambda
+          push: true
+          provenance: false
+          tags: |
+            ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/gakkyu-alert-mcp-server-${{ env.ENVIRONMENT }}:latest
+            ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/gakkyu-alert-mcp-server-${{ env.ENVIRONMENT }}:${{ github.sha }}
+          cache-from: type=gha,scope=mcp-server-${{ env.ENVIRONMENT }}
+          cache-to: type=gha,mode=max,scope=mcp-server-${{ env.ENVIRONMENT }}
+
+      - name: Update Lambda function code
+        run: |
+          aws lambda update-function-code \
+            --function-name "gakkyu-alert-mcp-server-${{ env.ENVIRONMENT }}" \
+            --image-uri "${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/gakkyu-alert-mcp-server-${{ env.ENVIRONMENT }}:${{ github.sha }}" \
             --query '{FunctionName:FunctionName,CodeSize:CodeSize,LastModified:LastModified}' \
             --output table

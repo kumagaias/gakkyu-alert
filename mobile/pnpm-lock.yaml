@@ -422,6 +422,9 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: ^1.12.1
         version: 1.29.0(zod@3.25.76)
+      '@vendia/serverless-express':
+        specifier: ^4.12.6
+        version: 4.12.6
       cors:
         specifier: ^2
         version: 2.8.6

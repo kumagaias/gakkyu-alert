@@ -128,6 +128,11 @@ module "ecr_send_alerts" {
   repository_name = "${var.project}-send-alerts-${var.environment}"
 }
 
+module "ecr_mcp_server" {
+  source          = "../../modules/aws/ecr"
+  repository_name = "${var.project}-mcp-server-${var.environment}"
+}
+
 # ---------------------------------------------------------------------------
 # IAM ロール
 # ---------------------------------------------------------------------------
@@ -306,6 +311,33 @@ module "lambda_api" {
     TABLE_SCHOOLS                        = module.db_schools.table_name
     AWS_NODEJS_CONNECTION_REUSE_ENABLED  = "1"
     ADMIN_TOKEN                          = var.admin_token
+  }
+}
+
+module "lambda_mcp_server" {
+  source        = "../../modules/aws/lambda"
+  function_name = "${var.project}-mcp-server-${var.environment}"
+  iam_role_arn  = aws_iam_role.lambda_api.arn
+  image_uri     = "${module.ecr_mcp_server.repository_url}:latest"
+  timeout       = 30
+  memory_size   = 512
+
+  environment_variables = {
+    NODE_ENV       = var.environment
+    API_BASE_URL   = var.custom_domain != null ? "https://api.${var.custom_domain}" : "https://${aws_api_gateway_rest_api.api.id}.execute-api.${var.aws_region}.amazonaws.com/${var.environment}"
+    SYNTHETIC_MODE = "true"
+  }
+}
+
+resource "aws_lambda_function_url" "mcp_server" {
+  function_name      = module.lambda_mcp_server.function_name
+  authorization_type = "NONE"
+
+  cors {
+    allow_origins = ["*"]
+    allow_methods = ["GET", "POST", "DELETE", "OPTIONS"]
+    allow_headers = ["content-type", "mcp-session-id", "accept"]
+    max_age       = 300
   }
 }
 

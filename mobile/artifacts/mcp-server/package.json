@@ -9,8 +9,12 @@
     "start": "node dist/server.js",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
+  "exports": {
+    "./lambda": "./dist/lambda.js"
+  },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.1",
+    "@vendia/serverless-express": "^4.12.6",
     "cors": "^2",
     "express": "^5",
     "zod": "^3.25.76"
